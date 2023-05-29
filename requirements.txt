@@ -24,3 +24,9 @@ opencc==1.1.1
 demucs
 openai-whisper
 gradio
+regex
+numba
+soundfile
+gradio
+imageio==2.4.1
+pyzmq
