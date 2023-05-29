@@ -30,4 +30,3 @@ soundfile
 gradio
 imageio==2.4.1
 pyzmq
-ffmpeg
