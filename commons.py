@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import logging
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -53,7 +54,7 @@ def slice_segments(x, ids_str, segment_size=4):
     try:
       ret[i] = x[i, :, idx_str:idx_end]
     except RuntimeError:
-      print("?")
+      logging.error("?")
   return ret
 
 

@@ -253,7 +253,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
     global_step += 1
     if epoch > hps.max_epochs:
         print("Maximum epoch reached, closing training...")
-        exit()
+        sys.exit(0)
 
   if rank == 0:
     logger.info('====> Epoch: {}'.format(epoch))
