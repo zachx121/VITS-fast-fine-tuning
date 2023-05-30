@@ -114,7 +114,7 @@ if __name__ == "__main__":
     tts_fn = create_tts_fn(net_g, hps, speaker_ids)
     vc_fn = create_vc_fn(net_g, hps, speaker_ids)
 
-    for i in [0, 1, 2]:
+    for i in speakers:
         _, audio_output = tts_fn(text=text2speak, speaker=i, language="简体中文", speed=1.0)
         sample_r, audio = audio_output
         from scipy.io.wavfile import write as write_wav
