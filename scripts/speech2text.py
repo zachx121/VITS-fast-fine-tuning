@@ -44,7 +44,7 @@ logging.info(">>> transcribe:\n%s" % text)
 
 # timeit
 time_res = timeit.timeit(lambda: M_stt.transcribe("./audio_daniel_2021-part0.wav"), number=3)
-logging.info(">>> timeit: %.4f" % time_res/3.0)
+logging.info(">>> timeit: %.4f" % (time_res/3.0))
 
 # import pickle
 # with open("./result_%s.pkl" % MODEL_TYPE, "wb") as f:
