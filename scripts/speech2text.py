@@ -18,6 +18,7 @@ class Speech2Text:
 
     def init(self):
         self.model = whisper.load_model(self.model_type, download_root=self.download_root)
+        return self
 
     def transcribe(self, audio_file):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
@@ -30,7 +31,7 @@ class Speech2Text:
 
 
 print(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
-M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models")
+M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models").init()
 time_res = timeit.timeit(lambda: M_stt.transcribe("./audio_daniel_2021-part0.wav"), number=10)
 print(">>> timeit: %s" % time_res)
 text = M_stt.transcribe("./audio_daniel_2021-part0.wav")
