@@ -64,7 +64,7 @@ class Text2Speech:
         del stn_tst, x_tst, x_tst_lengths, sid
         return self.hparams.data.sampling_rate, audio
 
-    def gen_wav(self, text, speaker, language, speed, output_fp):
+    def gen_wav(self, text, output_fp, speaker="audio", language="简体中文", speed=1.0):
         sample_rate, audio = self.tts_fn(text, speaker, language, speed)
         write_wav(output_fp, sample_rate, audio)
 
@@ -76,3 +76,15 @@ M_tts.gen_wav(text="叫啥，北京炸酱面？你住的是在鸟巢北苑那边
               language="简体中文",
               speed=1.0,
               output_fp="output_audio_local.wav")
+
+# all_txt = [
+#     "123",
+#     "一二三",
+#     "北京炸酱面",
+#     "叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧↑",
+#     "叫啥，北京炸酱面吗 你住的是在鸟巢北苑那边吧↓",
+# ]
+# for idx, txt in enumerate(all_txt):
+#     M_tts.gen_wav(txt, output_fp="local_%d.wav" % idx)
+#
+# print(M_tts.hparams.symbols)
