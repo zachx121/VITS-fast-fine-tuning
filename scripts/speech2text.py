@@ -1,4 +1,7 @@
-
+import logging
+logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.INFO)
 import whisper
 
 # tiny,base,small,medium,large-v1,large-v2
@@ -16,8 +19,12 @@ class Speech2Text:
         self.download_root = download_root
         self.model = None
 
-    def init(self):
+    def init(self, prehot_audio="./prehot_speech2text.wav"):
         self.model = whisper.load_model(self.model_type, download_root=self.download_root)
+        try:
+            self.transcribe(prehot_audio)
+        except:
+            logging.warning("pre_hot fail.")
         return self
 
     def transcribe(self, audio_file):
@@ -30,12 +37,14 @@ class Speech2Text:
         return result['text']
 
 
-print(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
+logging.info(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
 M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models").init()
-time_res = timeit.timeit(lambda: M_stt.transcribe("./audio_daniel_2021-part0.wav"), number=10)
-print(">>> timeit: %s" % time_res)
 text = M_stt.transcribe("./audio_daniel_2021-part0.wav")
-print(">>> transcribe:\n%s" % text)
+logging.info(">>> transcribe:\n%s" % text)
+
+# timeit
+time_res = timeit.timeit(lambda: M_stt.transcribe("./audio_daniel_2021-part0.wav"), number=1)
+logging.info(">>> timeit: %s" % time_res)
 
 # import pickle
 # with open("./result_%s.pkl" % MODEL_TYPE, "wb") as f:
