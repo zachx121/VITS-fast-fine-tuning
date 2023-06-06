@@ -31,9 +31,9 @@ class Speech2Text:
                                        word_timestamps=False)
         return result['text']
 
-    def transcribe_data(self, data):
+    def transcribe_data(self, data, sr=32768):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
-        audio = np.frombuffer(data, np.int16).astype(np.float32) * (1 / 32768.0)
+        audio = np.frombuffer(data, np.int16).astype(np.float32) * (1.0 / sr)
         audio = whisper.pad_or_trim(audio)
         mel = whisper.log_mel_spectrogram(audio).to(self.model.device)
         options = whisper.DecodingOptions(fp16=False)

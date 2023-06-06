@@ -23,14 +23,14 @@ name_space = '/MY_SPACE'
 
 def socket_accept_audio(data):
     #todo. 接受客户端的音频数据buffer
-    some_inp = data['audio']
+    audio_buffer = data['audio']
+    audio_sr = data['sample_rate']
     ###
-    text = M_stt.transcribe_data(some_inp)
-    audio = M_tts.gen_audio()
+    text = M_stt.transcribe_data(audio_buffer, audio_sr)
     sample_rate, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
     ###
-    #todo. 把采样率和audio返回给客户端
-    socketio.emit()
+    #todo. 把采样率和audio返回给客户端，客户端应该也是需要采样率sample_rate和声音数组audio才能播放的
+    socketio.emit("event", audio, sample_rate)
 
 
 if __name__ == '__main__':
