@@ -15,7 +15,7 @@ logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.INFO)
 
-GEN_AUDIO = False
+GEN_AUDIO = True
 # 创建一个Socket.IO client
 sio = socketio.Client()
 
