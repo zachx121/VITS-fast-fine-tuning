@@ -7,7 +7,10 @@ from text2speech import Text2Speech
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit,  join_room
 import numpy as np
-
+from collections import deque
+import time
+import audioop
+from scipy.io.wavfile import write as write_wav
 # [Flask Service init]
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
@@ -56,17 +59,75 @@ def mtest_message(message):
     logging.info("send message to client.")
 
 
-@socketio.on("process", namespace=NAME_SPACE)
-def process_audio(data):
-    logging.info(f"{NAME_SPACE}_audio received an input.")
+def _process_audio(data):
     text = M_stt.transcribe_buffer(data['audio'],
                                    sr_inp=data['sample_rate'],
                                    channels_inp=data['channels'],
                                    fp16=False)
+    if data.get("gen_audio", False):
+        sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
+    else:
+        sr = 0.0
+        audio = np.array(0)
+    rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
+    return rsp
 
-    rsp = {"data": text}
+buffer_cache = deque()
+buffer_duration = 0.0
+last_volume_check = 0
+low_volume_duration = 0.0
+VOLUME_THRESHOLD = 500  # 你需要设定一个阈值
+
+@socketio.on("process_v2", namespace=NAME_SPACE)
+def process_audio_v2(data):
+    global buffer_duration, last_volume_check, low_volume_duration
+    logging.info(f"{NAME_SPACE}_audio received an input.")
+    # 计算此次音频buffer的时长，这需要你知道音频的采样率和channels
+    # 这里x2是因为1.data['audio']是一个字节流，2.标准的16位PCM音频中，每个样本占用2个字节
+    buffer_duration += len(data['audio']) / (2 * data['sample_rate'] * data['channels'])
+
+    # 检查音量是否低于阈值，这需要一个函数来计算音量
+    if audioop.rms(data['audio'], 2) < VOLUME_THRESHOLD:
+        if last_volume_check == 0:
+            last_volume_check = time.time()
+        low_volume_duration += time.time() - last_volume_check
+    else:
+        # 出现大于阈值的音量，就重置low_volume_duration
+        low_volume_duration = 0.0
+        last_volume_check = 0
+    buffer_cache.append(data['audio'])
+    print(buffer_duration, last_volume_check, low_volume_duration)
+    if buffer_duration >= 5.0 or low_volume_duration >= 2.0:
+        # 如果buffer时长超过5秒，或者音量持续2秒低于阈值，则转录音频
+        audio_buffer = b''.join(buffer_cache)
+        # rsp = _process_audio({**data, **{"audio": audio_buffer}})
+        # emit("audio_rsp", rsp)
+        print("buffer时长超过5秒，或者音量持续2秒低于阈值，则转录音频")
+        # 清空缓存和计时器
+        buffer_cache.clear()
+        buffer_duration = 0.0
+        low_volume_duration = 0.0
+        last_volume_check = 0
+
+
+@socketio.on("process", namespace=NAME_SPACE)
+def process_audio(data):
+    logging.info(f"{NAME_SPACE}_audio received an input.")
+    # >>> Debug 音频文件存起来
+    # audio_raw = np.frombuffer(data['audio'], np.int16).flatten().astype(np.float32) * (1.0 / 2 ** 15)
+    # write_wav("./received_audio_%d.wav" % time.time(), data['sample_rate'], audio_raw)
+    # <<<
+    text = M_stt.transcribe_buffer(data['audio'],
+                                   sr_inp=data['sample_rate'],
+                                   channels_inp=data['channels'],
+                                   fp16=False)
+    if data.get("gen_audio", False):
+        sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
+    else:
+        sr = 0.0
+        audio = np.array(0)
+    rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
     emit("audio_rsp", rsp)
-    logging.info("send message to client: %s" % rsp)
 
 
 @socketio.on("init", namespace=NAME_SPACE)
