@@ -1,3 +1,5 @@
+import time
+
 from models import SynthesizerTrn
 import torch
 from torch import no_grad, LongTensor
@@ -5,6 +7,8 @@ import utils
 import commons
 from text import text_to_sequence
 from scipy.io.wavfile import write as write_wav
+import pyaudio
+import threading
 import logging
 logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
@@ -69,22 +73,51 @@ class Text2Speech:
         write_wav(output_fp, sample_rate, audio)
 
 
-M_tts = Text2Speech(model_dir="./vits_models/G_latest_cxm_1st.pth",
-                    config_fp="./configs/finetune_speaker.json").init()
-M_tts.gen_wav(text="叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧？",
-              speaker="audio",
-              language="简体中文",
-              speed=1.0,
-              output_fp="output_audio_local.wav")
+if __name__ == '__main__':
+    M_tts = Text2Speech(model_dir="./vits_models/G_latest_cxm_1st.pth",
+                        config_fp="./configs/finetune_speaker.json").init()
 
-# all_txt = [
-#     "123",
-#     "一二三",
-#     "北京炸酱面",
-#     "叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧↑",
-#     "叫啥，北京炸酱面吗 你住的是在鸟巢北苑那边吧↓",
-# ]
-# for idx, txt in enumerate(all_txt):
-#     M_tts.gen_wav(txt, output_fp="local_%d.wav" % idx)
-#
-# print(M_tts.hparams.symbols)
+    # M_tts.gen_wav(text="叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧？",
+    #               speaker="audio",
+    #               language="简体中文",
+    #               speed=1.0,
+    #               output_fp="output_audio_local.wav")
+
+    sr, audio = M_tts.tts_fn(text="Hello",
+                             speaker="audio",
+                             language="English",
+                             speed=1.0)
+    audio_buffer = audio.tobytes()
+
+    def play_audio(audio_buffer, sr, channels=1):
+        p = pyaudio.PyAudio()
+        # 打开一个音频流
+        stream = p.open(format=pyaudio.paFloat32,
+                        channels=channels,
+                        rate=sr,
+                        output=True)
+        # 播放音频
+        stream.write(audio_buffer)
+        # 结束后关闭音频流
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+    for _ in range(2):
+        # 创建一个线程来播放音频，避免阻塞主线程
+        t = threading.Thread(target=play_audio, args=(audio_buffer, sr))
+        t.start()
+        time.sleep(2)
+
+
+    # all_txt = [
+    #     "123",
+    #     "一二三",
+    #     "北京炸酱面",
+    #     "叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧↑",
+    #     "叫啥，北京炸酱面吗 你住的是在鸟巢北苑那边吧↓",
+    # ]
+    # for idx, txt in enumerate(all_txt):
+    #     M_tts.gen_wav(txt, output_fp="local_%d.wav" % idx)
+    #
+    # print(M_tts.hparams.symbols)
