@@ -42,7 +42,7 @@ class Text2Speech:
             **self.hparams.model)
         _ = net.eval()
         _ = utils.load_checkpoint(self.model_dir, net, None)
-        self.model = net
+        self.model = net.to(self.device)
         return self
 
     def get_text(self, text, is_symbol):
