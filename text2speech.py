@@ -26,11 +26,12 @@ class Text2Speech:
     }
     lang = ['日本語', '简体中文', 'English', 'Mix']
 
-    def __init__(self, model_dir, config_fp):
+    def __init__(self, model_dir, config_fp, device=DEVICE):
         self.model_dir = model_dir
         self.hparams = utils.get_hparams_from_file(config_fp)
         self.speaker2id = self.hparams.speakers
         self.model = None
+        self.device = device
 
     def init(self):
         net = SynthesizerTrn(
@@ -59,9 +60,9 @@ class Text2Speech:
         speaker_id = self.speaker2id[speaker]
         stn_tst = self.get_text(text, False)
         with no_grad():
-            x_tst = stn_tst.unsqueeze(0).to(DEVICE)
-            x_tst_lengths = LongTensor([stn_tst.size(0)]).to(DEVICE)
-            sid = LongTensor([speaker_id]).to(DEVICE)
+            x_tst = stn_tst.unsqueeze(0).to(self.device)
+            x_tst_lengths = LongTensor([stn_tst.size(0)]).to(self.device)
+            sid = LongTensor([speaker_id]).to(self.device)
             audio = self.model.infer(x_tst, x_tst_lengths, sid=sid,
                                      noise_scale=.667, noise_scale_w=0.8,
                                      length_scale=1.0 / speed)[0][0, 0].data.cpu().float().numpy()

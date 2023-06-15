@@ -10,6 +10,7 @@ import numpy as np
 from collections import deque
 import time
 import audioop
+import torch
 from scipy.io.wavfile import write as write_wav
 # [Flask Service init]
 app = Flask(__name__)
@@ -18,9 +19,11 @@ socketio = SocketIO()
 socketio.init_app(app, cors_allowed_origins='*')
 NAME_SPACE = '/MY_SPACE'
 
-logging.info(">>> Construct Model")
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+logging.info(">>> Construct Model (device is '%s')" % DEVICE)
 M_tts = Text2Speech(model_dir="./vits_models/G_latest_cxm_1st.pth",
-                    config_fp="./configs/finetune_speaker.json")
+                    config_fp="./configs/finetune_speaker.json",
+                    device=DEVICE)
 M_stt = Speech2Text(model_type="tiny", download_root="./whisper_models")
 
 logging.info(">>> Construct Model done.")
