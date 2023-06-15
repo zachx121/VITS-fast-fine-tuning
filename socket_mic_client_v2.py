@@ -13,7 +13,7 @@ from collections import deque
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 GEN_AUDIO = True
 # 创建一个Socket.IO client
@@ -23,6 +23,8 @@ sio = socketio.Client()
 @sio.event(namespace='/MY_SPACE')
 def get_server_info(message):
     logging.info("Server Says: '%s'\n" % message)
+    if message == "":
+        logging.info(">>> 服务端已就绪...")
 
 
 def play_audio(audio_buffer, sr, channels=1):
@@ -40,8 +42,8 @@ def play_audio(audio_buffer, sr, channels=1):
     p.terminate()
 
 
-@sio.event(namespace='/MY_SPACE')
-def audio_rsp(message):
+@sio.on("audio_rsp", namespace="/MY_SPACE")
+def rsp_func(message):
     logging.info("[words]: %s" % message['text'])
     if GEN_AUDIO:
         sr, audio_buffer = message['sr'], message['audio_buffer']
@@ -72,7 +74,7 @@ stream = p.open(format=sample_format,
                 frames_per_buffer=chunk,
                 input=True)
 
-logging.info(">>> 开始录音...")
+logging.info(">>> 开启录音...")
 # 音量开始超过阈值时，持续添加音频数据到缓冲区，直到持续两秒小于阈值时停止添加，并在子进程将缓冲区的内容发送给服务器；
 # 同时，还需要在子进程持续检测缓冲区的音频长度是否超过5秒，如果超过5秒直接发送给服务器并清空缓冲区；
 # 在整个过程中，需要保证不阻塞主进程，以便接收到用户的语音输入。
@@ -82,7 +84,7 @@ buffer_max_sec = 15
 # 最短停顿检测时间
 gap_duration_holder = 0.5
 # 音量阈值
-threshold = 1000  # 500会录到敲键盘的声音
+threshold = 600  # 500会录到敲键盘的声音
 # 缓冲区
 buffer_cache = b""
 # 音频间隔开始时间
@@ -108,7 +110,8 @@ def send_data():
 
         with lock:
             if should_send:
-                logging.debug("[SubProcess] sending... (size is %s)" % len(buffer_cache))
+                logging.debug("[SubProcess] sending... (size is %s, sid is %s)"
+                              % (len(buffer_cache), sio.get_sid("/MY_SPACE")))
                 audio_info = {"audio": buffer_cache,
                               "channels": channels,
                               "sample_rate": sample_rate,
