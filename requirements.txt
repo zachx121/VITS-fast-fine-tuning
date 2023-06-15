@@ -34,3 +34,4 @@ ffmpeg-python
 flask~=2.3.2
 tqdm~=4.65.0
 pyaudio
+flask_socketio
