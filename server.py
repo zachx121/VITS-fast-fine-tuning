@@ -113,24 +113,46 @@ def process_audio_v2(data):
         last_volume_check = 0
 
 
+import queue
+import threading
+# 创建一个线程安全的队列
+data_queue = queue.Queue()
+
+def process_queue():
+    while True:
+        # 从队列中获取数据
+        data = data_queue.get()
+        if data is None:
+            break
+
+        # 处理数据
+        text = M_stt.transcribe_buffer(data['audio'],
+                                       sr_inp=data['sample_rate'],
+                                       channels_inp=data['channels'],
+                                       fp16=False)
+        if data.get("gen_audio", False):
+            sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
+        else:
+            sr = 0.0
+            audio = np.array(0)
+        rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
+
+        # 发送回应
+        emit("audio_rsp", rsp)
+
+        # 标记这个任务为完成
+        data_queue.task_done()
+
+# 创建并启动一个新线程来处理队列中的数据
+threading.Thread(target=process_queue, daemon=True).start()
+
+
 @socketio.on("process", namespace=NAME_SPACE)
 def process_audio(data):
     logging.info(f"{NAME_SPACE}_audio received an input.")
-    # >>> Debug 音频文件存起来
-    # audio_raw = np.frombuffer(data['audio'], np.int16).flatten().astype(np.float32) * (1.0 / 2 ** 15)
-    # write_wav("./received_audio_%d.wav" % time.time(), data['sample_rate'], audio_raw)
-    # <<<
-    text = M_stt.transcribe_buffer(data['audio'],
-                                   sr_inp=data['sample_rate'],
-                                   channels_inp=data['channels'],
-                                   fp16=False)
-    if data.get("gen_audio", False):
-        sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
-    else:
-        sr = 0.0
-        audio = np.array(0)
-    rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
-    emit("audio_rsp", rsp)
+
+    # 将数据添加到队列中
+    data_queue.put(data)
 
 
 @socketio.on("init", namespace=NAME_SPACE)
