@@ -3,13 +3,8 @@ import time
 import socketio
 import pyaudio
 import audioop
-import tkinter as tk
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
 import logging
-from collections import deque
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
