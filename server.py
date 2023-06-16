@@ -157,10 +157,12 @@ def process_audio(data):
 
 @socketio.on("init", namespace=NAME_SPACE)
 def init_model(data):
-    M_tts.init()
-    logging.info(">>> M_tts init done.")
-    M_stt.init()
-    logging.info(">>> M_stt init done.")
+    if not M_tts.is_init:
+        M_tts.init()
+        logging.info(">>> M_tts init done.")
+    if not M_stt.is_init:
+        M_stt.init()
+        logging.info(">>> M_stt init done.")
     logging.info(">>> All init done.")
     emit("get_server_info", "All init done.")
 

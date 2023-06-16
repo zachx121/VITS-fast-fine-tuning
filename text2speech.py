@@ -32,6 +32,7 @@ class Text2Speech:
         self.speaker2id = self.hparams.speakers
         self.model = None
         self.device = device
+        self.is_init = False
 
     def init(self):
         net = SynthesizerTrn(
@@ -43,6 +44,7 @@ class Text2Speech:
         _ = net.eval()
         _ = utils.load_checkpoint(self.model_dir, net, None)
         self.model = net.to(self.device)
+        self.is_init = True
         return self
 
     def get_text(self, text, is_symbol):

@@ -16,6 +16,7 @@ class Speech2Text:
         self.model_type = model_type
         self.download_root = download_root
         self.model = None
+        self.is_init = False
 
     def init(self, prehot_audio="./prehot_speech2text.wav"):
         logging.info(">>> loading whiser model")
@@ -25,6 +26,7 @@ class Speech2Text:
             self.transcribe(prehot_audio, fp16=False)
         except (Exception,) as e:
             logging.warning("pre_hot fail.")
+        self.is_init = True
         return self
 
     def transcribe(self, audio_file, **kwargs):
