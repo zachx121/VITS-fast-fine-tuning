@@ -36,3 +36,4 @@ tqdm~=4.65.0
 pyaudio
 flask_socketio
 eventlet
+python-socketio

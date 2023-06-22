@@ -1,22 +1,29 @@
 import logging
+import random
+
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.INFO)
 from speech2text import Speech2Text
 from text2speech import Text2Speech
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit,  join_room
+from flask import copy_current_request_context
 import numpy as np
 from collections import deque
 import time
 import audioop
 import torch
 from scipy.io.wavfile import write as write_wav
+from concurrent.futures import ThreadPoolExecutor
 # [Flask Service init]
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 socketio = SocketIO()
-socketio.init_app(app, cors_allowed_origins='*')
+socketio.init_app(app, cors_allowed_origins='*', async_mode='eventlet')
+# socketio.init_app(app, cors_allowed_origins='*', async_mode='threading')
+import eventlet
+eventlet.monkey_patch()
 NAME_SPACE = '/MY_SPACE'
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -38,7 +45,9 @@ def index():
 @app.route("/push")
 def push_once():
     logging.info("will send to clinet.")
-    socketio.emit("dcenter", {"data": "this is a test message"}, namespace=NAME_SPACE)
+    socketio.emit("get_server_info", {"data": "this is a test message"}, namespace=NAME_SPACE)
+    socketio.emit("audio_rsp", {"text": "manually debug send."}, namespace=NAME_SPACE)
+
     return "message send!"
 
 
@@ -53,110 +62,82 @@ def connect_msg():
 def disconnect_msg():
     logging.info("client disconnected.")
 
-
-@socketio.on("my_event", namespace=NAME_SPACE)
-def mtest_message(message):
-    logging.info("client's message as follow: %s" % message)
-    emit("my_response", {"data": "the server-side has received your message as follow:\n '%s'" % message})
-    emit("get_server_info", {"data": "server send u message in event:get_server_info"})
-    logging.info("send message to client.")
-
-
-def _process_audio(data):
-    text = M_stt.transcribe_buffer(data['audio'],
-                                   sr_inp=data['sample_rate'],
-                                   channels_inp=data['channels'],
-                                   fp16=False)
-    if data.get("gen_audio", False):
-        sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
-    else:
-        sr = 0.0
-        audio = np.array(0)
-    rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
-    return rsp
-
-buffer_cache = deque()
-buffer_duration = 0.0
-last_volume_check = 0
-low_volume_duration = 0.0
-VOLUME_THRESHOLD = 500  # 你需要设定一个阈值
-
-@socketio.on("process_v2", namespace=NAME_SPACE)
-def process_audio_v2(data):
-    global buffer_duration, last_volume_check, low_volume_duration
-    logging.info(f"{NAME_SPACE}_audio received an input.")
-    # 计算此次音频buffer的时长，这需要你知道音频的采样率和channels
-    # 这里x2是因为1.data['audio']是一个字节流，2.标准的16位PCM音频中，每个样本占用2个字节
-    buffer_duration += len(data['audio']) / (2 * data['sample_rate'] * data['channels'])
-
-    # 检查音量是否低于阈值，这需要一个函数来计算音量
-    if audioop.rms(data['audio'], 2) < VOLUME_THRESHOLD:
-        if last_volume_check == 0:
-            last_volume_check = time.time()
-        low_volume_duration += time.time() - last_volume_check
-    else:
-        # 出现大于阈值的音量，就重置low_volume_duration
-        low_volume_duration = 0.0
-        last_volume_check = 0
-    buffer_cache.append(data['audio'])
-    print(buffer_duration, last_volume_check, low_volume_duration)
-    if buffer_duration >= 5.0 or low_volume_duration >= 2.0:
-        # 如果buffer时长超过5秒，或者音量持续2秒低于阈值，则转录音频
-        audio_buffer = b''.join(buffer_cache)
-        # rsp = _process_audio({**data, **{"audio": audio_buffer}})
-        # emit("audio_rsp", rsp)
-        print("buffer时长超过5秒，或者音量持续2秒低于阈值，则转录音频")
-        # 清空缓存和计时器
-        buffer_cache.clear()
-        buffer_duration = 0.0
-        low_volume_duration = 0.0
-        last_volume_check = 0
-
-
+from datetime import datetime
 import queue
 import threading
 # 创建一个线程安全的队列
 data_queue = queue.Queue()
-
+# 创建一个线程池
+# executor = ThreadPoolExecutor(max_workers=5)
 def process_queue():
+    logging.info("process_queue start.")
     while True:
         # 从队列中获取数据
-        data = data_queue.get()
+        #logging.info("process_queue start | while True start.")
+        data, t_str, sid = data_queue.get()
+        #logging.info("data is %s" % data)
         if data is None:
+            logging.info("data is None, break now. %s" % t_str)
             break
 
+        t_begin = time.time()
+        logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
         # 处理数据
         text = M_stt.transcribe_buffer(data['audio'],
                                        sr_inp=data['sample_rate'],
                                        channels_inp=data['channels'],
                                        fp16=False)
+        logging.debug("  transcribed: '%s'" % text)
         if data.get("gen_audio", False):
+            logging.debug("  executing tts...")
             sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
         else:
             sr = 0.0
             audio = np.array(0)
         rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
 
-        # 发送回应
-        emit("audio_rsp", rsp)
-
+        # # 模拟耗时和处理结果
+        # time.sleep(random.randint(1, 10))
+        # rsp = {"text": "pretend processed."}
         # 标记这个任务为完成
         data_queue.task_done()
+        logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time()-t_begin))
+        # # 用 copy_current_request_context 也不行，因为process事件在入队后就结束了，会报错如下：
+        # # - RuntimeError: 'copy_current_request_context' can only be used when a request context is active,
+        # # - such as in a view function.
+        # 直接把发信息来的那个客户端记下来，然后单独用socketio.emit发
+        socketio.emit("audio_rsp", rsp, to=sid, namespace=NAME_SPACE)
+        logging.debug("size of data_queue: %s" % data_queue.qsize())
+
 
 # 创建并启动一个新线程来处理队列中的数据
-threading.Thread(target=process_queue, daemon=True).start()
-
+#threading.Thread(target=process_queue, daemon=True).start()
+socketio.start_background_task(target=process_queue)
 
 @socketio.on("process", namespace=NAME_SPACE)
 def process_audio(data):
-    logging.info(f"{NAME_SPACE}_audio received an input.")
+    ts = int(time.time())
+    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    #logging.info(f"{NAME_SPACE}_audio received an input.(%s)" % ts)
 
     # 将数据添加到队列中
-    data_queue.put(data)
+    data_queue.put((data, t_str, request.sid))
+    logging.debug("size of data_queue: %s" % data_queue.qsize())
+    #
+    # debug
+    # socketio.emit好像总是会丢失？客户端除了第一条好像都没收到
+    # 经检测这个是正常的
+    #socketio.emit("audio_rsp", {"text": "server-side copy. send a signal back (%s)" % t_str}, to=request.sid, namespace=NAME_SPACE)
+    #logging.debug("send a manually response to client.")
 
 
 @socketio.on("init", namespace=NAME_SPACE)
-def init_model(data):
+def init(*args, **kwargs):
+    init_model(*args, **kwargs)
+    emit("get_server_info", "All init done.")
+
+
+def init_model(*args, **kwargs):
     if not M_tts.is_init:
         M_tts.init()
         logging.info(">>> M_tts init done.")
@@ -164,8 +145,9 @@ def init_model(data):
         M_stt.init()
         logging.info(">>> M_stt init done.")
     logging.info(">>> All init done.")
-    emit("get_server_info", "All init done.")
 
+
+init_model()
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080, debug=True)

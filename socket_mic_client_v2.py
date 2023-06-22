@@ -10,16 +10,23 @@ logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 
-GEN_AUDIO = True
+GEN_AUDIO = False
 # 创建一个Socket.IO client
 sio = socketio.Client()
 
+@sio.event(namespace='/MY_SPACE')
+def connect():
+    logging.info('connection established')
+
+@sio.event(namespace='/MY_SPACE')
+def disconnect():
+    logging.info('disconnected from server')
 
 @sio.event(namespace='/MY_SPACE')
 def get_server_info(message):
     logging.info("Server Says: '%s'\n" % message)
-    if message == "":
-        logging.info(">>> 服务端已就绪...")
+    if message == "All init done.":
+        logging.info(">>> 服务端已就绪，可以开始说话...")
 
 
 def play_audio(audio_buffer, sr, channels=1):
@@ -50,7 +57,7 @@ def rsp_func(message):
 sio.connect('http://localhost:8080/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
-sio.emit('init', {}, namespace='/MY_SPACE')
+
 
 # 以下是PyAudio参数，可能需要根据你的麦克风和系统进行修改
 chunk = 1024*10  # 每次读取的音频数据的长度
@@ -69,7 +76,8 @@ stream = p.open(format=sample_format,
                 frames_per_buffer=chunk,
                 input=True)
 
-logging.info(">>> 开启录音...")
+logging.info(">>> 开启录音，等待服务器就绪...")
+sio.emit('init', {}, namespace='/MY_SPACE')
 # 音量开始超过阈值时，持续添加音频数据到缓冲区，直到持续两秒小于阈值时停止添加，并在子进程将缓冲区的内容发送给服务器；
 # 同时，还需要在子进程持续检测缓冲区的音频长度是否超过5秒，如果超过5秒直接发送给服务器并清空缓冲区；
 # 在整个过程中，需要保证不阻塞主进程，以便接收到用户的语音输入。
@@ -79,7 +87,7 @@ buffer_max_sec = 15
 # 最短停顿检测时间
 gap_duration_holder = 0.5
 # 音量阈值
-threshold = 600  # 500会录到敲键盘的声音
+threshold = 300  # 500会录到敲键盘的声音
 # 缓冲区
 buffer_cache = b""
 # 音频间隔开始时间
