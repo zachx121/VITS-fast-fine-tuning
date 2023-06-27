@@ -8,7 +8,6 @@ import utils
 import commons
 from text import text_to_sequence
 from scipy.io.wavfile import write as write_wav
-import pyaudio
 import threading
 import logging
 logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
@@ -83,22 +82,25 @@ class Text2Speech:
         write_wav(output_fp, sample_rate, audio)
 
 
-def play_audio(audio_buffer, sr, channels=1):
-    p = pyaudio.PyAudio()
-    # 打开一个音频流
-    stream = p.open(format=pyaudio.paFloat32,
-                    channels=channels,
-                    rate=sr,
-                    output=True)
-    # 播放音频
-    stream.write(audio_buffer)
-    # 结束后关闭音频流
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-
 
 if __name__ == '__main__':
+    import pyaudio
+
+    def play_audio(audio_buffer, sr, channels=1):
+        p = pyaudio.PyAudio()
+        # 打开一个音频流
+        stream = p.open(format=pyaudio.paFloat32,
+                        channels=channels,
+                        rate=sr,
+                        output=True)
+        # 播放音频
+        stream.write(audio_buffer)
+        # 结束后关闭音频流
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+
     M_tts = Text2Speech(model_dir="./vits_models/G_latest_xr_3rd_cje.pth",
                         config_fp="./configs/finetune_speaker.json").init()
 
