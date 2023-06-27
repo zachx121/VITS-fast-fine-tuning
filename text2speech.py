@@ -1,3 +1,8 @@
+import logging
+logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.INFO)
+
 import sys
 import time
 
@@ -9,10 +14,7 @@ import commons
 from text import text_to_sequence
 from scipy.io.wavfile import write as write_wav
 import threading
-import logging
-logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
-                    datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.INFO)
+
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
