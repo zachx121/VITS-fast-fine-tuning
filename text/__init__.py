@@ -1,4 +1,6 @@
 """ from https://github.com/keithito/tacotron """
+import logging
+
 from text import cleaners
 from text.symbols import symbols
 
@@ -16,17 +18,24 @@ def text_to_sequence(text, symbols, cleaner_names):
     Returns:
       List of integers corresponding to the symbols in the text
   '''
+  logging.debug(">>> func:text_to_sequence params as follow:")
+  logging.debug(f"  [text]: {text}")
+  logging.debug(f"  [symbols]: {symbols}")
+  logging.debug(f"  [cleaner_names]: {cleaner_names}")
   sequence = []
   symbol_to_id = {s: i for i, s in enumerate(symbols)}
   clean_text = _clean_text(text, cleaner_names)
-  print(clean_text)
-  print(f" length:{len(clean_text)}")
+  logging.debug(f" clean_text: {clean_text}")
+  logging.debug(f" length-text:{len(clean_text)}")
+  ignored_symbol = []
   for symbol in clean_text:
     if symbol not in symbol_to_id.keys():
+      ignored_symbol.append(symbol)
       continue
     symbol_id = symbol_to_id[symbol]
     sequence += [symbol_id]
-  print(f" length:{len(sequence)}")
+  logging.debug(f" length-seq:{len(sequence)}")
+  logging.debug(" ignored-symbol: '%s'" % ",".join(ignored_symbol))
   return sequence
 
 

@@ -9,11 +9,13 @@ rm -rf denoised_audio/*
 rm -rf segmented_character_voice/audio/*
 # 对所有上传的数据进行自动去背景音&标注, 需要调用Whisper和Demucs，运行时间可能较长。
 # 将所有音频（无论是上传的还是从视频抽取的，必须是.wav格式）去噪
+# 注意不同的语言模式，会使用不同的注音符号（.json配置）和不同的预训练底模
+LANG_MODE="CJE"
 python scripts/denoise_audio.py
 # 分割并标注长音频
-python scripts/long_audio_transcribe.py --languages "CJ" --whisper_size large
+python scripts/long_audio_transcribe.py --languages $LANG_MODE --whisper_size large
 # 标注短音频
-python scripts/short_audio_transcribe.py --languages "CJ" --whisper_size large
+python scripts/short_audio_transcribe.py --languages $LANG_MODE --whisper_size large
 # 底模采样率可能与辅助数据不同，需要重采样
 python scripts/resample.py
 
@@ -21,7 +23,9 @@ python scripts/resample.py
 # ADD_AUXILIARY=True
 #python preprocess_v2.py --add_auxiliary_data True --languages "CJ"
 # 辅助训练数据只用中文的
-python preprocess_v2.py --add_auxiliary_data True --languages "C"
+# python preprocess_v2.py --add_auxiliary_data True --languages "C"
+# 辅助训练数据中英日都用
+python preprocess_v2.py --add_auxiliary_data True --languages $LANG_MODE
 # ADD_AUXILIARY=False
 #python preprocess_v2.py --languages "CJ"
 

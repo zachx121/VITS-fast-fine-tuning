@@ -86,8 +86,8 @@ def create_vc_fn(model, hps, speaker_ids):
     return vc_fn
 
 class args:
-    model_dir = "./OUTPUT_MODEL/G_latest.pth"
-    config_dir = "./finetune_speaker.json"
+    model_dir = "./G_latest_xr_2nd.pth"
+    config_dir = "./configs/finetune_speaker.json"
     share = False
 
 if __name__ == "__main__":
@@ -96,8 +96,11 @@ if __name__ == "__main__":
     # parser.add_argument("--config_dir", default="./finetune_speaker.json", help="directory to your model config file")
     # parser.add_argument("--share", default=False, help="make link public (used in colab)")
     # args = parser.parse_args()
-    text2speak = "农夫山泉柚子绿茶是一个果味茶饮料"
-
+    text2speak = "叫啥，北京炸酱面？你住的实在鸟巢北苑那边吧？我到酒店休息下，卧铺没睡好，12点起来吃饭。我住在秋果酒店。我昨天在家休息了一天，下午开始搞。先把需求整理出来，还有公司注册啥的，让其他人先动起来，然后找那个人要声音demo。gpt那个测试可能得明天开始搞"
+    text2speak_list = [
+        "谁看这个热线的反映问题",
+        "沧州一城枫景社区"
+                       ]
     hps = utils.get_hparams_from_file(args.config_dir)
     net_g = SynthesizerTrn(
         len(hps.symbols),
@@ -114,10 +117,21 @@ if __name__ == "__main__":
     tts_fn = create_tts_fn(net_g, hps, speaker_ids)
     vc_fn = create_vc_fn(net_g, hps, speaker_ids)
 
-    for i in speakers:
-        _, audio_output = tts_fn(text=text2speak, speaker=i, language="简体中文", speed=1.0)
+    for idx, text2speak in enumerate(text2speak_list):
+        speaker_i = 'audio'
+        logging.info(">>> processing speaker: %s" % speaker_i)
+        _, audio_output = tts_fn(text=text2speak, speaker=speaker_i, language="简体中文", speed=1.0)
         sample_r, audio = audio_output
         from scipy.io.wavfile import write as write_wav
         # save audio
-        filepath = "output_audio_%s.wav" % i
+        filepath = "output_audio_local_%s.wav" % idx
         write_wav(filepath, sample_r, audio)
+
+    # for i in speakers:
+    #     logging.info(">>> processing speaker: %s" % i)
+    #     _, audio_output = tts_fn(text=text2speak, speaker=i, language="简体中文", speed=1.0)
+    #     sample_r, audio = audio_output
+    #     from scipy.io.wavfile import write as write_wav
+    #     # save audio
+    #     filepath = "output_audio_local_%s.wav" % i
+    #     write_wav(filepath, sample_r, audio)
