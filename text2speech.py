@@ -63,8 +63,10 @@ class Text2Speech:
     def tts_fn(self, text, speaker, language, speed, text_cleaners=None):
         if language is not None:
             text = self.language_marks[language] + text + self.language_marks[language]
+        logging.debug(f" speaker2id:{self.speaker2id}")
+        logging.debug(f" use speaker:{speaker}")
         speaker_id = self.speaker2id[speaker]
-        logging.debug(f" use speaker:{speaker} speaker_id:{speaker_id}")
+        logging.debug(f" use speaker_id:{speaker_id}")
         stn_tst = self.get_text(text, False, text_cleaners)
         with no_grad():
             x_tst = stn_tst.unsqueeze(0).to(self.device)
