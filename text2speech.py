@@ -1,3 +1,4 @@
+import sys
 import time
 
 from models import SynthesizerTrn
@@ -47,20 +48,24 @@ class Text2Speech:
         self.is_init = True
         return self
 
-    def get_text(self, text, is_symbol):
+    # is_symbol 表示输入的text是否直接就是注音符号
+    def get_text(self, text, is_symbol, text_cleaners=None):
+        # cjke_cleaners
+        use_cleaners = text_cleaners if text_cleaners is not None else self.hparams.data.text_cleaners
         text_norm = text_to_sequence(text,
                                      self.hparams.symbols,
-                                     [] if is_symbol else self.hparams.data.text_cleaners)
+                                     [] if is_symbol else use_cleaners)
         if self.hparams.data.add_blank:
             text_norm = commons.intersperse(text_norm, 0)
         text_norm = LongTensor(text_norm)
         return text_norm
 
-    def tts_fn(self, text, speaker, language, speed):
+    def tts_fn(self, text, speaker, language, speed, text_cleaners=None):
         if language is not None:
             text = self.language_marks[language] + text + self.language_marks[language]
         speaker_id = self.speaker2id[speaker]
-        stn_tst = self.get_text(text, False)
+        logging.debug(f" use speaker:{speaker} speaker_id:{speaker_id}")
+        stn_tst = self.get_text(text, False, text_cleaners)
         with no_grad():
             x_tst = stn_tst.unsqueeze(0).to(self.device)
             x_tst_lengths = LongTensor([stn_tst.size(0)]).to(self.device)
@@ -76,8 +81,23 @@ class Text2Speech:
         write_wav(output_fp, sample_rate, audio)
 
 
+def play_audio(audio_buffer, sr, channels=1):
+    p = pyaudio.PyAudio()
+    # 打开一个音频流
+    stream = p.open(format=pyaudio.paFloat32,
+                    channels=channels,
+                    rate=sr,
+                    output=True)
+    # 播放音频
+    stream.write(audio_buffer)
+    # 结束后关闭音频流
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+
 if __name__ == '__main__':
-    M_tts = Text2Speech(model_dir="./vits_models/G_latest_cxm_1st.pth",
+    M_tts = Text2Speech(model_dir="./vits_models/G_latest_xr_3rd_cje.pth",
                         config_fp="./configs/finetune_speaker.json").init()
 
     # M_tts.gen_wav(text="叫啥，北京炸酱面？你住的是在鸟巢北苑那边吧？",
@@ -85,6 +105,31 @@ if __name__ == '__main__':
     #               language="简体中文",
     #               speed=1.0,
     #               output_fp="output_audio_local.wav")
+
+    sr, audio = M_tts.tts_fn(text="Hello, My name is norris, I'm from Shenzhen China.",
+                             speaker="xr0",
+                             language="English",
+                             speed=0.7)
+    play_audio(audio.tobytes(), sr)
+
+    sr, audio = M_tts.tts_fn(text="这是我的炸酱面",
+                             speaker="xr0",
+                             language="简体中文",
+                             speed=0.7)
+    play_audio(audio.tobytes(), sr)
+
+    sr, audio = M_tts.tts_fn(text="这是我的炸酱面",
+                             speaker="xr1",
+                             language="简体中文",
+                             speed=0.7)
+    play_audio(audio.tobytes(), sr)
+
+    sr, audio = M_tts.tts_fn(text="这是我的炸酱面",
+                             speaker="xr2",
+                             language="简体中文",
+                             speed=0.7)
+    play_audio(audio.tobytes(), sr)
+    sys.exit(0)
 
     sr, audio = M_tts.tts_fn(text="Hello",
                              speaker="audio",
