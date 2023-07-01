@@ -14,6 +14,7 @@ from collections import deque
 import time
 import audioop
 import torch
+import sys
 from scipy.io.wavfile import write as write_wav
 from concurrent.futures import ThreadPoolExecutor
 # [Flask Service init]
@@ -26,12 +27,20 @@ import eventlet
 eventlet.monkey_patch()
 NAME_SPACE = '/MY_SPACE'
 
+PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
+TTS_FP = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
+STT_ROOT_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
+
+logging.info("[PORT]: %s" % PORT)
+logging.info("[TTS_FP]: %s" % TTS_FP)
+logging.info("[STT_ROOT_DIR]: %s" % STT_ROOT_DIR)
+
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging.info(">>> Construct Model (device is '%s')" % DEVICE)
-M_tts = Text2Speech(model_dir="./vits_models/G_latest_cxm_1st.pth",
+M_tts = Text2Speech(model_dir=TTS_FP,
                     config_fp="./configs/finetune_speaker.json",
                     device=DEVICE)
-M_stt = Speech2Text(model_type="tiny", download_root="./whisper_models")
+M_stt = Speech2Text(model_type="tiny", download_root=STT_ROOT_DIR)
 
 logging.info(">>> Construct Model done.")
 
@@ -150,8 +159,7 @@ def init_model(*args, **kwargs):
 init_model()
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=8080, debug=True)
-
+    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
 
 
 # [VITS Stuff]
