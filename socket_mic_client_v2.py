@@ -53,8 +53,9 @@ def rsp_func(message):
         t.start()
         t.join()
 
-
-sio.connect('http://localhost:8080/MY_SPACE')
+host = "http://localhost:8080"
+# host = "https://zach-sgio6wfd7vze.serv-c1.openbayes.net"
+sio.connect(host+'/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
 
@@ -87,7 +88,7 @@ buffer_max_sec = 15
 # 最短停顿检测时间
 gap_duration_holder = 0.5
 # 音量阈值
-threshold = 300  # 500会录到敲键盘的声音
+threshold = 800  # 500会录到敲键盘的声音
 # 缓冲区
 buffer_cache = b""
 # 音频间隔开始时间
