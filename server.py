@@ -28,8 +28,8 @@ eventlet.monkey_patch()
 NAME_SPACE = '/MY_SPACE'
 
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
-TTS_MODEL = int(sys.argv[2]) if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
-SST_MODEL_DIR = int(sys.argv[3]) if len(sys.argv) >= 4 else "./whisper_models"
+TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
+SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 logging.info(">>> [PORT]: %s" % PORT)
 logging.info(">>> [TTS_MODEL]: %s" % TTS_MODEL)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
