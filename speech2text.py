@@ -31,7 +31,7 @@ class Speech2Text:
             logging.info(">>> try to transcribe with prehot_audio")
             self.transcribe(prehot_audio, fp16=False)
         except (Exception,) as e:
-            logging.warning("pre_hot fail.")
+            logging.warning("pre_hot fail. %s" % e)
         self.is_init = True
         return self
 
