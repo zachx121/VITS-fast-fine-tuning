@@ -3,7 +3,7 @@ import random
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 from speech2text import Speech2Text
 from text2speech import Text2Speech
 from flask import Flask, render_template, request
@@ -17,8 +17,6 @@ import torch
 import sys
 from scipy.io.wavfile import write as write_wav
 from concurrent.futures import ThreadPoolExecutor
-import eventlet
-eventlet.monkey_patch()
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
@@ -56,6 +54,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 socketio = SocketIO()
 socketio.init_app(app, cors_allowed_origins='*', async_mode='eventlet')
+import eventlet
+eventlet.monkey_patch()
 # socketio.init_app(app, cors_allowed_origins='*', async_mode='threading')
 NAME_SPACE = '/MY_SPACE'
 
@@ -144,7 +144,13 @@ socketio.start_background_task(target=process_queue)
 def process_audio(data):
     ts = int(time.time())
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-    #logging.info(f"{NAME_SPACE}_audio received an input.(%s)" % ts)
+    logging.info(f"{NAME_SPACE}_audio received an input.(%s)" % ts)
+
+    # text = M_stt.transcribe_buffer(data['audio'],
+    #                                sr_inp=data['sample_rate'],
+    #                                channels_inp=data['channels'],
+    #                                fp16=False)
+    # logging.debug("  transcribed: '%s'" % text)
 
     # 将数据添加到队列中
     data_queue.put((data, t_str, request.sid))

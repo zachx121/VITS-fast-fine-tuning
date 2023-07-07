@@ -52,11 +52,35 @@ class Conv1d(nn.Conv1d):
 
 def sinusoids(length, channels, max_timescale=10000):
     """Returns sinusoids for positional embedding"""
+    logging.debug(f"length: {length}, channels: {channels}")
+    # import torch
+    # import numpy as np
+    # (length,channels,max_timescale)=(1500,384,10000)
     assert channels % 2 == 0
     log_timescale_increment = np.log(max_timescale) / (channels // 2 - 1)
-    inv_timescales = torch.exp(-log_timescale_increment * torch.arange(channels // 2))
+    # 莫名其妙，如果直接执行torch.exp会报错 Float point exception (core dumped)
+    # 暂时处理：把原tensor拆成10个部分，然后分别执行torch.exp，最后再拼起来
+    # inv_timescales = torch.exp(-log_timescale_increment * torch.arange(channels // 2))
+    input_tensor = -log_timescale_increment * torch.arange(channels // 2).float()
+    chunks = torch.split(input_tensor, 10)
+    inv_timescales = torch.cat([torch.exp(chunk) for chunk in chunks])
     scaled_time = torch.arange(length)[:, np.newaxis] * inv_timescales[np.newaxis, :]
-    return torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=1)
+    logging.debug("    in sinusoids, 'sinres'")
+    [torch.sin(c) for c in torch.split(scaled_time, 100)]
+    sinres = torch.sin(scaled_time)
+    logging.debug("    in sinusoids, 'cosres'")
+    cosres = torch.cos(scaled_time)
+    return torch.cat([sinres, cosres], dim=1)
+
+# torch.allclose(sinusoids_np(1500,384), sinusoids_np(1500,384), rtol=1e-05, atol=1e-08)
+def sinusoids_np(length, channels, max_timescale=10000):
+    """Returns sinusoids for positional embedding"""
+    assert channels % 2 == 0
+    log_timescale_increment = np.log(max_timescale) / (channels // 2 - 1)
+    inv_timescales = np.exp(-log_timescale_increment * np.arange(channels // 2))
+    scaled_time = np.arange(length)[:, np.newaxis] * inv_timescales[np.newaxis, :]
+    output = np.concatenate([np.sin(scaled_time), np.cos(scaled_time)], axis=1)
+    return torch.from_numpy(output)
 
 
 class MultiHeadAttention(nn.Module):
@@ -149,7 +173,7 @@ class AudioEncoder(nn.Module):
         self.conv1 = Conv1d(n_mels, n_state, kernel_size=3, padding=1)
         self.conv2 = Conv1d(n_state, n_state, kernel_size=3, stride=2, padding=1)
         logging.debug("executing register_buffer")
-        self.register_buffer("positional_embedding", sinusoids(n_ctx, n_state))
+        self.register_buffer("positional_embedding", sinusoids_np(n_ctx, n_state))
 
         logging.debug("executing nn.ModuleList")
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
