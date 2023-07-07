@@ -21,6 +21,7 @@ class Speech2Text:
     def init(self, prehot_audio="./prehot_speech2text.wav"):
         logging.info(">>> loading whiser model")
         self.model = whisper.load_model(self.model_type, download_root=self.download_root)
+        logging.info(">>> loading whiser model(done.)")
         try:
             logging.info(">>> try to transcribe with prehot_audio")
             self.transcribe(prehot_audio, fp16=False)
