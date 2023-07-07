@@ -17,16 +17,10 @@ import torch
 import sys
 from scipy.io.wavfile import write as write_wav
 from concurrent.futures import ThreadPoolExecutor
-# [Flask Service init]
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret_key'
-socketio = SocketIO()
-socketio.init_app(app, cors_allowed_origins='*', async_mode='eventlet')
-# socketio.init_app(app, cors_allowed_origins='*', async_mode='threading')
 import eventlet
 eventlet.monkey_patch()
-NAME_SPACE = '/MY_SPACE'
 
+# [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
 TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
 SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
@@ -34,14 +28,38 @@ logging.info(">>> [PORT]: %s" % PORT)
 logging.info(">>> [TTS_MODEL]: %s" % TTS_MODEL)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
 
+# [Model prepared]
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging.info(">>> Construct Model (device is '%s')" % DEVICE)
 M_tts = Text2Speech(model_dir=TTS_MODEL,
                     config_fp="./configs/finetune_speaker.json",
                     device=DEVICE)
-M_stt = Speech2Text(model_type="tiny", download_root=SST_MODEL_DIR)
+M_stt = Speech2Text(model_type="tiny", download_root=SST_MODEL_DIR, device=DEVICE)
 
 logging.info(">>> Construct Model done.")
+
+
+def init_model(*args, **kwargs):
+    if not M_tts.is_init:
+        M_tts.init()
+        logging.info(">>> M_tts init done.")
+    if not M_stt.is_init:
+        M_stt.init()
+        logging.info(">>> M_stt init done.")
+    logging.info(">>> All init done.")
+
+
+init_model()
+
+# [Flask Service init]
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret_key'
+socketio = SocketIO()
+socketio.init_app(app, cors_allowed_origins='*', async_mode='eventlet')
+# socketio.init_app(app, cors_allowed_origins='*', async_mode='threading')
+NAME_SPACE = '/MY_SPACE'
+
+
 
 # 用网页的js作为socket的客户端
 @app.route("/")
@@ -144,18 +162,6 @@ def init(*args, **kwargs):
     init_model(*args, **kwargs)
     emit("get_server_info", "All init done.")
 
-
-def init_model(*args, **kwargs):
-    if not M_tts.is_init:
-        M_tts.init()
-        logging.info(">>> M_tts init done.")
-    if not M_stt.is_init:
-        M_stt.init()
-        logging.info(">>> M_stt init done.")
-    logging.info(">>> All init done.")
-
-
-init_model()
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=PORT, debug=True)

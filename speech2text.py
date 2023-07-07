@@ -4,6 +4,8 @@ import numpy as np
 import ffmpeg
 from scipy.io.wavfile import read as wav_read
 from scipy.io.wavfile import write as write_wav
+import os
+import torch
 import logging
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
@@ -12,7 +14,9 @@ logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
 
 
 class Speech2Text:
-    def __init__(self, model_type, download_root="./whisper_models"):
+    def __init__(self, model_type, download_root="./whisper_models", device=None):
+        default_device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.device = device if device is not None else default_device
         self.model_type = model_type
         self.download_root = download_root
         self.model = None
@@ -20,7 +24,8 @@ class Speech2Text:
 
     def init(self, prehot_audio="./prehot_speech2text.wav"):
         logging.info(">>> loading whiser model")
-        self.model = whisper.load_model(self.model_type, download_root=self.download_root)
+        # self.model = whisper.load_model(self.model_type, download_root=self.download_root)
+        self.model = self.__load_model()
         logging.info(">>> loading whiser model(done.)")
         try:
             logging.info(">>> try to transcribe with prehot_audio")
@@ -29,6 +34,47 @@ class Speech2Text:
             logging.warning("pre_hot fail.")
         self.is_init = True
         return self
+
+    def __load_model(self):
+        _ALIGNMENT_HEADS = {
+            "tiny.en": b"ABzY8J1N>@0{>%R00Bk>$p{7v037`oCl~+#00",
+            "tiny": b"ABzY8bu8Lr0{>%RKn9Fp%m@SkK7Kt=7ytkO",
+            "base.en": b"ABzY8;40c<0{>%RzzG;p*o+Vo09|#PsxSZm00",
+            "base": b"ABzY8KQ!870{>%RzyTQH3`Q^yNP!>##QT-<FaQ7m",
+            "small.en": b"ABzY8>?_)10{>%RpeA61k&I|OI3I$65C{;;pbCHh0B{qLQ;+}v00",
+            "small": b"ABzY8DmU6=0{>%Rpa?J`kvJ6qF(V^F86#Xh7JUGMK}P<N0000",
+            "medium.en": b"ABzY8usPae0{>%R7<zz_OvQ{)4kMa0BMw6u5rT}kRKX;$NfYBv00*Hl@qhsU00",
+            "medium": b"ABzY8B0Jh+0{>%R7}kK1fFL7w6%<-Pf*t^=N)Qr&0RR9",
+            "large-v1": b"ABzY8r9j$a0{>%R7#4sLmoOs{s)o3~84-RPdcFk!JR<kSfC2yj",
+            "large-v2": b"ABzY8zd+h!0{>%R7=D0pU<_bnWW*tkYAhobTNnu$jnkEkXqp)j;w1Tzk)UH3X%SZd&fFZ2fC2yj",
+            "large": b"ABzY8zd+h!0{>%R7=D0pU<_bnWW*tkYAhobTNnu$jnkEkXqp)j;w1Tzk)UH3X%SZd&fFZ2fC2yj",
+        }
+        alignment_heads = _ALIGNMENT_HEADS[self.model_type]
+        checkpoint_file = os.path.join(self.download_root, self.model_type+".pt")
+        logging.debug("loading from ckpt_file: %s" % checkpoint_file)
+        open(checkpoint_file, "rb")
+        with open(checkpoint_file, "rb") as fp:
+            checkpoint = torch.load(fp, map_location=self.device)
+        logging.debug("loading from ckpt_file: %s (done.)" % checkpoint_file)
+        del checkpoint_file
+
+        from debug_whisper_models import ModelDimensions,Whisper
+        logging.debug("executing ModelDimensions")
+        dims = ModelDimensions(**checkpoint["dims"])
+        logging.debug("executing Whisper")
+        logging.debug(">>> ModelDimensions as follow:")
+        logging.debug(str(dims))
+        logging.debug(">>>")
+        model = Whisper(dims)
+        logging.debug("executing load_state_dict")
+        model.load_state_dict(checkpoint["model_state_dict"])
+
+        if alignment_heads is not None:
+            logging.debug("use alignment_heads as: %s" % alignment_heads)
+            model.set_alignment_heads(alignment_heads)
+
+        logging.debug("executing model.to(self.device)")
+        return model.to(self.device)
 
     def transcribe(self, audio_file, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
