@@ -118,14 +118,16 @@ def process_queue():
         logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
         # 处理数据
         with LOCK:
-            # 超过2s后才再次发送音频就清空缓存
-            if ts_data - SID_INFO[sid]["last_active_time"] >= 2:
-                logging.debug("  empty buffer.(t_data:%s t_last: %s)" % (ts_data, SID_INFO[sid]["last_active_time"]))
-                SID_INFO[sid]["buffer"] = b""
-            SID_INFO[sid]["buffer"] += data['audio']
-            SID_INFO[sid]["last_active_time"] = ts_data
+            info = SID_INFO[sid]
+            # 超过1s后才再次发送音频就清空缓存
+            if ts_data - info["last_active_time"] >= 1:
+                logging.debug("  empty buffer.(t_data:%s t_last: %s)" % (ts_data, info["last_active_time"]))
+                info["buffer"] = b""
+            info["buffer"] += data['audio']
+            info["last_active_time"] = ts_data
+            SID_INFO.update({sid: info})
 
-        text = M_stt.transcribe_buffer(SID_INFO[sid]["buffer"],
+        text = M_stt.transcribe_buffer(info["buffer"],
                                        sr_inp=SAMPLE_RATE,
                                        channels_inp=CHANNELS,
                                        fp16=False)
