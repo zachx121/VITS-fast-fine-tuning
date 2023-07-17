@@ -163,6 +163,22 @@ def process_audio(data):
     #logging.debug("send a manually response to client.")
 
 
+@socketio.on("text2speech", namespace=NAME_SPACE)
+def text2speech(data):
+    pass
+
+
+@socketio.on("speech2text", namespace=NAME_SPACE)
+def speech2text(data):
+    ts = int(time.time())
+    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"{NAME_SPACE}_audio received an input.(%s)" % ts)
+
+    # 将数据添加到队列中
+    data_queue.put((data, t_str, request.sid))
+    logging.debug("size of data_queue: %s" % data_queue.qsize())
+
+
 @socketio.on("init", namespace=NAME_SPACE)
 def init(*args, **kwargs):
     init_model(*args, **kwargs)
