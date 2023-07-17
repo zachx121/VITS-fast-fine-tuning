@@ -53,8 +53,8 @@ def rsp_func(message):
         t.start()
         t.join()
 
-host = "http://localhost:8080"
-# host = "https://zach-sgio6wfd7vze.serv-c1.openbayes.net"
+#host = "http://localhost:8080"
+host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
 sio.connect(host+'/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
@@ -133,6 +133,7 @@ send_thread.start()
 try:
 
     while True:
+        # chunk: 每次读取的音频数据的长度
         data = stream.read(chunk)
         rms = audioop.rms(data, 2)  # 使用audioop.rms()函数计算音量
 
