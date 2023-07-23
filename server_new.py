@@ -100,14 +100,15 @@ from datetime import datetime
 import queue
 import threading
 # 创建一个线程安全的队列
-data_queue = queue.Queue()
+queue_speech2text = queue.Queue()
+queue_text2speech = queue.Queue()
 # 创建一个线程池
 # executor = ThreadPoolExecutor(max_workers=5)
-def process_queue():
-    logging.info("process_queue start.")
+def process_queue_speech2text():
+    logging.info("process_queue_speech2text start.")
     while True:
         # 从队列中获取数据
-        data, t_str, sid = data_queue.get()
+        data, t_str, sid = queue_speech2text.get()
         ts_data = int(datetime.strptime(t_str, "%Y-%m-%d %H:%M:%S").timestamp())
 
         if data is None:
@@ -134,47 +135,37 @@ def process_queue():
         logging.debug("  transcribed: '%s'" % text)
         rsp = {"text": text}
 
-        data_queue.task_done()
+        queue_speech2text.task_done()
         logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time()-t_begin))
         socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
-        logging.debug("size of data_queue: %s" % data_queue.qsize())
+        logging.debug("size of data_queue: %s" % queue_speech2text.qsize())
+
+def process_queue_text2speech():
+    pass
 
 
 # 创建并启动一个新线程来处理队列中的数据
-#threading.Thread(target=process_queue, daemon=True).start()
-socketio.start_background_task(target=process_queue)
-
-@socketio.on("process", namespace=NAME_SPACE)
-def process_audio(data):
-    ts = int(time.time())
-    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"{NAME_SPACE}_audio received an input.(%s)" % ts)
-
-    # text = M_stt.transcribe_buffer(data['audio'],
-    #                                sr_inp=data['sample_rate'],
-    #                                channels_inp=data['channels'],
-    #                                fp16=False)
-    # logging.debug("  transcribed: '%s'" % text)
-
-    # 将数据添加到队列中
-    data_queue.put((data, t_str, request.sid))
-    logging.debug("size of data_queue: %s" % data_queue.qsize())
-    #
-    # debug
-    # socketio.emit好像总是会丢失？客户端除了第一条好像都没收到
-    # 经检测这个是正常的
-    #socketio.emit("audio_rsp", {"text": "server-side copy. send a signal back (%s)" % t_str}, to=request.sid, namespace=NAME_SPACE)
-    #logging.debug("send a manually response to client.")
+# threading.Thread(target=process_queue, daemon=True).start()
+socketio.start_background_task(target=process_queue_speech2text)
+socketio.start_background_task(target=process_queue_text2speech)
 
 
 @socketio.on("text2speech", namespace=NAME_SPACE)
 def text2speech(data):
     # 放到子线程里做
-    text = data['text']
-    sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
-    rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
-    socketio.emit("audio_rsp", rsp, to=request.sid, namespace=NAME_SPACE)
-    pass
+
+    ts = int(time.time())
+    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
+
+    # 将数据添加到队列中
+    queue_text2speech.put((data, t_str, request.sid))
+    logging.debug("size(estimate) of data_queue: %s" % queue_speech2text.qsize())
+
+    #
+    # sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
+    # rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
+    # socketio.emit("audio_rsp", rsp, to=request.sid, namespace=NAME_SPACE)
 
 
 @socketio.on("speech2text", namespace=NAME_SPACE)
@@ -184,16 +175,8 @@ def speech2text(data):
     logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
 
     # 将数据添加到队列中
-    data_queue.put((data, t_str, request.sid))
-    logging.debug("size(estimate) of data_queue: %s" % data_queue.qsize())
-
-    # debug
-    # socketio.emit好像总是会丢失？客户端除了第一条好像都没收到
-    # 经检测这个是正常的
-    # socketio.emit("audio_rsp",
-    #               {"text": "server-side copy. send a signal back (%s)" % t_str},
-    #               to=request.sid, namespace=NAME_SPACE)
-    # logging.debug("send a manually response to client.")
+    queue_speech2text.put((data, t_str, request.sid))
+    logging.debug("size(estimate) of data_queue: %s" % queue_speech2text.qsize())
 
 
 @socketio.on("init", namespace=NAME_SPACE)

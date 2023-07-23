@@ -8,7 +8,7 @@ import logging
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 GEN_AUDIO = False
 # 创建一个Socket.IO client
@@ -88,7 +88,7 @@ buffer_max_sec = 15
 # 最短停顿检测时间
 gap_duration_holder = 0.5
 # 音量阈值
-threshold = 800  # 500会录到敲键盘的声音
+threshold = 500  # 500会录到敲键盘的声音
 # 缓冲区
 buffer_cache = b""
 # 音频间隔开始时间
