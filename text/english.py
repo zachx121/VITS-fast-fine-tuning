@@ -84,6 +84,27 @@ _ipa_to_ipa2 = [(re.compile('%s' % x[0]), x[1]) for x in [
     ('ʧ', 'tʃ')
 ]]
 
+_ipa_to_romaji = [(re.compile('%s' % x[0]), x[1]) for x in [
+    ('ɛ', 'ə'),
+    ('æ', 'ə→'),
+    ('ʊ', 'uɯ→'),
+    ('ɪ', 'i→'),
+    ('ɔ', 'o→'),
+    ('ɪz', 'is'),
+    ('ts', 'ʦ'),
+    ('y', 'j'),
+    ('ʒ', 'j→'),
+    ('ni', 'n^i'),
+    ('nj', 'n^'),
+    ('hi', 'çi'),
+    ('hj', 'ç'),
+    ('I', 'i*'),
+    ('U', 'ɯ*'),
+    ('ʥ', 'j'),
+    ('r', 'ɹ'),
+    ('ˈ', '`'),
+    ('ˌ', '↓')
+]]
 
 def expand_abbreviations(text):
     for regex, replacement in _abbreviations:
@@ -172,6 +193,12 @@ def english_to_lazy_ipa(text):
         text = re.sub(regex, replacement, text)
     return text
 
+def english_to_romaji(text):
+    # lazy_ipa里看起来是有简化一些发音，会导致读音失真
+    text = english_to_ipa(text)
+    for regex, replacement in _ipa_to_romaji:
+        text = re.sub(regex, replacement, text)
+    return text
 
 def english_to_ipa2(text):
     text = english_to_ipa(text)

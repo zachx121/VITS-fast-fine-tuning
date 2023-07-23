@@ -3,7 +3,7 @@ from text.japanese import japanese_to_romaji_with_accent, japanese_to_ipa, japan
 from text.korean import latin_to_hangul, number_to_hangul, divide_hangul, korean_to_lazy_ipa, korean_to_ipa
 from text.mandarin import number_to_chinese, chinese_to_bopomofo, latin_to_bopomofo, chinese_to_romaji, chinese_to_lazy_ipa, chinese_to_ipa, chinese_to_ipa2
 from text.sanskrit import devanagari_to_ipa
-from text.english import english_to_lazy_ipa, english_to_ipa2, english_to_lazy_ipa2
+from text.english import english_to_lazy_ipa, english_to_ipa2, english_to_lazy_ipa2, english_to_romaji
 from text.thai import num_to_thai, latin_to_thai
 # from text.shanghainese import shanghainese_to_ipa
 # from text.cantonese import cantonese_to_ipa
@@ -48,6 +48,21 @@ def zh_ja_mixture_cleaners(text):
     text = re.sub(r'([^\.,!\?\-…~])$', r'\1.', text)
     return text
 
+def zh_ja_en_mixture_cleaners(text_inp):
+    # text_inp = "[ZH]这是我的炸酱面[ZH]"
+    # text_inp = "[EN]Hello, My name is norris, I'm from Shenzhen China.[EN]"
+
+    print("[zh_ja_mixture_cleaners]-input: '%s'" % text_inp)
+    text = re.sub(r'\[ZH\](.*?)\[ZH\]',
+                  lambda x: chinese_to_romaji(x.group(1))+' ', text_inp)
+    text = re.sub(r'\[JA\](.*?)\[JA\]', lambda x: japanese_to_romaji_with_accent(
+        x.group(1)).replace('ts', 'ʦ').replace('u', 'ɯ').replace('...', '…')+' ', text)
+    text = re.sub(r'\[EN\](.*?)\[EN\]', lambda x: english_to_romaji(
+        x.group(1)) + ' ', text)
+    text = re.sub(r'\s+$', '', text)
+    text = re.sub(r'([^\.,!\?\-…~])$', r'\1.', text)
+    print("[zh_ja_mixture_cleaners]-output: '%s'" % text)
+    return text
 
 def sanskrit_cleaners(text):
     text = text.replace('॥', '।').replace('ॐ', 'ओम्')

@@ -1,5 +1,4 @@
 import logging
-import random
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
@@ -7,16 +6,11 @@ logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
 from speech2text import Speech2Text
 from text2speech import Text2Speech
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit,  join_room
-from flask import copy_current_request_context
+from flask_socketio import SocketIO, emit
 import numpy as np
-from collections import deque
 import time
-import audioop
 import torch
 import sys
-from scipy.io.wavfile import write as write_wav
-from concurrent.futures import ThreadPoolExecutor
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
