@@ -1,5 +1,5 @@
 import sys
-
+import re
 from utils_audio import play_audio
 from models import SynthesizerTrn
 import torch
@@ -59,9 +59,28 @@ class Text2Speech:
         text_norm = LongTensor(text_norm)
         return text_norm
 
-    def tts_fn(self, text, speaker, language, speed, text_cleaners=None):
+    @staticmethod
+    def __mark(text):
+        # 将连续的英文字符用[EN]包围 | 必须先执行英文标记
+        en_pattern = re.compile(r'[a-zA-Z\s]+')
+        text = re.sub(en_pattern, r'[EN]\g<0>[EN]', text)
+
+        # 将连续的中文字符和阿拉伯数字用[ZH]包围
+        zh_num_pattern = re.compile(r'[\u4e00-\u9fa5\d]+')
+        text = re.sub(zh_num_pattern, r'[ZH]\g<0>[ZH]', text)
+
+        return text
+
+    def tts_fn(self, text, speaker, language,
+               speed=1.0,
+               text_cleaners=None):
+        text_cleaners = ["zh_ja_en_mixture_cleaners"] if text_cleaners is None else text_cleaners
         if language is not None:
-            text = self.language_marks[language] + text + self.language_marks[language]
+            if language == "auto":
+                text = self.__mark(text)
+            else:
+                text = self.language_marks[language] + text + self.language_marks[language]
+        logging.debug(f"marked text is '{text}'")
         speaker_id = self.speaker2id[speaker]
         logging.debug(f" use speaker:{speaker} speaker_id:{speaker_id}")
         stn_tst = self.get_text(text, False, text_cleaners)
@@ -108,11 +127,11 @@ if __name__ == '__main__':
     #                          speed=0.7)
     # play_audio(audio.tobytes(), sr)
 
-    sr, audio = M_tts.tts_fn(text="Hello, My name is norris. Today is a good day. I am from Shenzhen China.",
+    sr, audio = M_tts.tts_fn(text="我是程晓敏1234。Hello, My name is norris. Today is a good day. I like China.",
                              speaker="audio",
-                             language="English",
+                             language="auto",  # 用Mix的话就相当于直接读字母发音了
                              text_cleaners=["zh_ja_en_mixture_cleaners"],
-                             speed=0.7)
+                             speed=1.0)
     play_audio(audio.tobytes(), sr)
 
     sr, audio = M_tts.tts_fn(text="这是我的炸酱面abcd",
