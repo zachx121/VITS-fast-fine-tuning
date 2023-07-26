@@ -1,11 +1,11 @@
-import sys
 import time
-
+import wave
 import socketio
 import pyaudio
 import audioop
 import threading
 import logging
+from multiprocessing import Process, Queue, Lock, Value
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
@@ -47,7 +47,7 @@ def play_audio(audio_buffer, sr, channels=1):
 
 @sio.on("speech2text_rsp", namespace="/MY_SPACE")
 def speech2text_rsp(message):
-    logging.info("       [tmp-words]: %s" % message['text'])
+    logging.info("       [tmp-words]: %s (eos:%s)" % (message['text'], message['eos']))
     if message.get('eos', "0") == "1":
         logging.info("[words]: %s" % message['text'])
     # if GEN_AUDIO:
@@ -98,7 +98,7 @@ buffer_max_sec = 15
 # 最短停顿检测时间
 gap_duration_holder = 0.5
 # 音量阈值
-threshold = 500  # 500会录到敲键盘的声音
+threshold = 300  # 500会录到敲键盘的声音
 # 缓冲区
 buffer_cache = b""
 # 音频间隔开始时间
@@ -110,21 +110,22 @@ should_record = False
 # 锁，用于同步访问 buffer_cache
 lock = threading.Lock()
 
-print(" >>>> use 'mic_client_v2.py'")
-sys.exit(0)
 
-def send_data():
-    global buffer_cache, should_send
+# 创建一个 Queue 实例来共享音频数据
+buffer_queue = Queue()
+buffer_queue_size = Value('i', 0)
+
+def send_data(buffer_queue, lock, buffer_queue_size):
+    wf = wave.open('output_mic_v2.wav', 'wb')
+    wf.setnchannels(channels)
+    wf.setsampwidth(sample_width)
+    wf.setframerate(sample_rate)
+
     while True:
-        # 缓冲区的音频时长超过5秒，发送数据并清空缓冲区
-        # buffer_length_seconds = len(buffer_cache) / bytes_per_second
-        # if buffer_length_seconds >= buffer_max_sec:
-        #     logging.info("[SubProcess] Talking for more than %s second." % buffer_max_sec)
-        #     should_send = True
-        if buffer_cache != b"":
-            should_send = True  # 持续发送数据
         with lock:
-            if should_send:
+            if buffer_queue_size.value > 0:
+                buffer_cache = buffer_queue.get()
+                buffer_queue_size.value -= 1
                 logging.debug("[SubProcess] sending... (size is %s, sid is %s)"
                               % (len(buffer_cache), sio.get_sid("/MY_SPACE")))
                 audio_info = {"audio": buffer_cache,
@@ -133,32 +134,32 @@ def send_data():
                               "ts": int(time.time())
                               }
                 sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
-                buffer_cache = b""
-                should_send = False
+                wf.writeframes(buffer_cache)
 
 
-# 启动发送数据的线程
-send_thread = threading.Thread(target=send_data)
-send_thread.start()
+if __name__ == '__main__':
+    # 创建并启动发送数据的进程
+    lock = Lock()
+    send_process = Process(target=send_data, args=(buffer_queue, lock, buffer_queue_size))
+    send_process.start()
 
+    try:
+        while True:
+            # chunk: 每次读取的音频数据的长度
+            data = stream.read(chunk)
+            rms = audioop.rms(data, 2)  # 使用audioop.rms()函数计算音量
 
-try:
-    while True:
-        # chunk: 每次读取的音频数据的长度
-        data = stream.read(chunk)
-        rms = audioop.rms(data, 2)  # 使用audioop.rms()函数计算音量
+            if rms > threshold:
+                # 大于阈值时，将音频数据放入队列
+                logging.debug("   recording rms: %s, buffer_size: %s" % (rms, buffer_queue_size.value))
+                with lock:
+                    buffer_queue.put(data)
+                    buffer_queue_size.value += 1
 
-        if rms > threshold:
-            # 大于阈值时，重置gap_start为0
-            logging.debug("   recording rms: %s, buffer_size: %s" % (rms, len(buffer_cache)))
-            with lock:
-                buffer_cache += data
-
-except KeyboardInterrupt:
-    print('停止录音')
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-    print('断开连接')
-    sio.disconnect()
-
+    except KeyboardInterrupt:
+        print('停止录音')
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+        print('断开连接')
+        sio.disconnect()

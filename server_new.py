@@ -1,6 +1,7 @@
 import logging
 import pickle
 import random
+import utils_audio
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
@@ -59,9 +60,14 @@ NAME_SPACE = '/MY_SPACE'
 SID_INFO = {}
 LOCK = threading.Lock()
 SAMPLE_RATE = 16000  # 采样频率
+SAMPLE_WIDTH = 2  # 标准的16位PCM音频中，每个样本占用2个字节
 CHANNELS = 1  # 音频通道数
+CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
+BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
+RMS_HOLDER = 1000
 
 # 以「127.0.0.1:8080/debug」这个页面的访问，来触发一次服务端对客户端的socket消息发送
+# curl 127.0.0.1:8080/debug
 @app.route("/debug")
 def debug_func():
     logging.info("will send to clinet.")
@@ -69,6 +75,12 @@ def debug_func():
     socketio.emit("audio_rsp", {"text": "manually debug send."}, namespace=NAME_SPACE)
     with open("./debug.pkl", "wb") as fwb:
         pickle.dump(SID_INFO, fwb)
+    for sid in SID_INFO:
+        wf = wave.open('output_sid_%s.wav' % sid, 'wb')
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(SAMPLE_WIDTH)
+        wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(SID_INFO[sid]["buffer"])
     return "message send!\n"
 
 
@@ -82,7 +94,8 @@ def connect_msg():
         "connect_time": ts,
         "connect_time_str": ts_str,
         "last_active_time": ts,
-        "buffer": b""
+        "buffer": b"",
+        "text": ""
     }
     with LOCK:
         SID_INFO.update({request.sid: info})
@@ -104,11 +117,75 @@ queue_speech2text = queue.Queue()
 queue_text2speech = queue.Queue()
 # 创建一个线程池
 # executor = ThreadPoolExecutor(max_workers=5)
+
+# [DEBUG] 打开一个wav文件，每次收到的buffer都往里面写
+import wave
+wf = wave.open('output_server_buffer.wav', 'wb')
+wf.setnchannels(CHANNELS)
+wf.setsampwidth(SAMPLE_WIDTH)
+wf.setframerate(SAMPLE_RATE)
+
+# 子线程用whisper处理语音转文本
 def process_queue_speech2text():
     logging.info("process_queue_speech2text start.")
     while True:
         # 从队列中获取数据
         data, t_str, sid = queue_speech2text.get()
+        ts_data = data['ts']
+
+        if data is None:
+            logging.info("data is None, break now. %s" % t_str)
+            break
+
+        t_begin = time.time()
+        logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
+
+        eos_tag =False
+        # 处理数据
+        with LOCK:
+            info = SID_INFO[sid]
+            info["buffer"] += data['audio']
+            info["last_active_time"] = ts_data
+
+            # 最后一秒的音量
+            lb = len(info["buffer"])
+            volume = audioop.rms(info["buffer"][lb - int(0.5 * BYTES_PER_SEC):lb], SAMPLE_WIDTH)
+            logging.debug("最后0.5秒的音量: %s" % volume)
+            if volume <= RMS_HOLDER:
+                logging.debug("    最后0.5秒的音量小于阈值, 清空buffer")
+                eos_tag = True
+                info["buffer"] = b""
+            SID_INFO.update({sid: info})
+
+        # 在锁外面发送消息
+        if eos_tag:
+            rsp = {"text": info["text"], "eos": "1"}
+            socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
+
+        text = ""
+        if len(info["buffer"]) > 0:
+            text = M_stt.transcribe_buffer(info["buffer"],
+                                           sr_inp=SAMPLE_RATE,
+                                           channels_inp=CHANNELS,
+                                           fp16=False)
+            logging.debug("  transcribed: '%s'" % text)
+            rsp = {"text": text, "eos": "0"}
+
+            queue_speech2text.task_done()
+            logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
+            socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
+            logging.debug("size of data_queue: %s" % queue_speech2text.qsize())
+
+        with LOCK:
+            info = SID_INFO[sid]
+            info["text"] = text
+
+# 子线程用vits进行声音合成（文本转语音）
+def process_queue_text2speech():
+    logging.info("process_queue_text2speech start.")
+    while True:
+        # 从队列中获取数据
+        data, t_str, sid = queue_text2speech.get()
         ts_data = int(datetime.strptime(t_str, "%Y-%m-%d %H:%M:%S").timestamp())
 
         if data is None:
@@ -118,30 +195,14 @@ def process_queue_speech2text():
         t_begin = time.time()
         logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
         # 处理数据
-        with LOCK:
-            info = SID_INFO[sid]
-            # 超过1s后才再次发送音频就清空缓存
-            if ts_data - info["last_active_time"] >= 1:
-                logging.debug("  empty buffer.(t_data:%s t_last: %s)" % (ts_data, info["last_active_time"]))
-                info["buffer"] = b""
-            info["buffer"] += data['audio']
-            info["last_active_time"] = ts_data
-            SID_INFO.update({sid: info})
-
-        text = M_stt.transcribe_buffer(info["buffer"],
-                                       sr_inp=SAMPLE_RATE,
-                                       channels_inp=CHANNELS,
-                                       fp16=False)
-        logging.debug("  transcribed: '%s'" % text)
-        rsp = {"text": text}
-
-        queue_speech2text.task_done()
-        logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time()-t_begin))
-        socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
-        logging.debug("size of data_queue: %s" % queue_speech2text.qsize())
-
-def process_queue_text2speech():
-    pass
+        sr, audio = M_tts.tts_fn(text=data["text"],
+                                 speaker="audio",
+                                 language="auto")
+        rsp = {"audio_buffer": audio.tobytes(), "sr": sr}
+        queue_text2speech.task_done()
+        logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
+        socketio.emit("audio_rsp", rsp, to=sid, namespace=NAME_SPACE)
+        logging.debug("size of data_queue: %s" % queue_text2speech.qsize())
 
 
 # 创建并启动一个新线程来处理队列中的数据
@@ -170,7 +231,8 @@ def text2speech(data):
 
 @socketio.on("speech2text", namespace=NAME_SPACE)
 def speech2text(data):
-    ts = int(time.time())
+    # ts = int(time.time())
+    ts = int(data['ts'])
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
     logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
 
