@@ -64,7 +64,7 @@ SAMPLE_WIDTH = 2  # 标准的16位PCM音频中，每个样本占用2个字节
 CHANNELS = 1  # 音频通道数
 CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
 BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
-RMS_HOLDER = 1000
+RMS_HOLDER = 777
 
 # 以「127.0.0.1:8080/debug」这个页面的访问，来触发一次服务端对客户端的socket消息发送
 # curl 127.0.0.1:8080/debug
@@ -201,7 +201,7 @@ def process_queue_text2speech():
         rsp = {"audio_buffer": audio.tobytes(), "sr": sr}
         queue_text2speech.task_done()
         logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
-        socketio.emit("audio_rsp", rsp, to=sid, namespace=NAME_SPACE)
+        socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
         logging.debug("size of data_queue: %s" % queue_text2speech.qsize())
 
 
