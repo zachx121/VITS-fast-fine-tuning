@@ -15,7 +15,8 @@ import audioop
 import torch
 import sys
 import threading
-
+import base64
+import json
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
@@ -214,7 +215,7 @@ socketio.start_background_task(target=process_queue_text2speech)
 @socketio.on("text2speech", namespace=NAME_SPACE)
 def text2speech(data):
     # 放到子线程里做
-
+    data = json.loads(data)
     ts = int(time.time())
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
     logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
@@ -231,6 +232,8 @@ def text2speech(data):
 
 @socketio.on("speech2text", namespace=NAME_SPACE)
 def speech2text(data):
+    data = json.loads(data)
+    data["buffer"] = base64.b64decode(data["buffer"])
     # ts = int(time.time())
     ts = int(data['ts'])
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
