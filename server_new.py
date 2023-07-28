@@ -199,7 +199,8 @@ def process_queue_text2speech():
         sr, audio = M_tts.tts_fn(text=data["text"],
                                  speaker="audio",
                                  language="auto")
-        rsp = {"audio_buffer": audio.tobytes(), "sr": sr}
+        rsp = {"audio_buffer": base64.b64encode(audio.tobytes()).decode(), "sr": str(sr)}
+        rsp = json.dumps(rsp)
         queue_text2speech.task_done()
         logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
         socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
