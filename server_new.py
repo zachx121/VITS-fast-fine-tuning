@@ -233,7 +233,7 @@ def text2speech(data):
 @socketio.on("speech2text", namespace=NAME_SPACE)
 def speech2text(data):
     data = json.loads(data)
-    data["buffer"] = base64.b64decode(data["buffer"])
+    data["audio"] = base64.b64decode(data["audio"])
     # ts = int(time.time())
     ts = int(data['ts'])
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
