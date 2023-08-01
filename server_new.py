@@ -78,7 +78,7 @@ def debug_func():
     logging.info("will send to clinet.")
     socketio.emit("get_server_info", {"data": "this is a test message"}, namespace=NAME_SPACE)
     socketio.emit("audio_rsp", {"text": "manually debug send."}, namespace=NAME_SPACE)
-    with open("./debug.pkl", "wb") as fwb:
+    with open(os.path.join(OUTPUT_DIR, "/debug.pkl"), "wb") as fwb:
         pickle.dump(SID_INFO, fwb)
     for sid in SID_INFO:
         wf_sid = wave.open(os.path.join(OUTPUT_DIR, 'sid_%s.wav' % sid), 'wb')

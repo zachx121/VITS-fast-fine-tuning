@@ -1,4 +1,9 @@
-*.pyc
-*.xml
-*.iml
-.idea/*
+*.ipynb_checkpoints
+*build/
+*.DS_Store
+*__pycache__/
+sounda_voice_models
+vits_models
+whisper_models
+data_gym
+nohup.out
