@@ -76,9 +76,9 @@ if __name__ == '__main__':
     mock_audio_fp = "/Users/didi/0-Code/Sounda/voice/input/female_p1_i.wav"
     wav, sr = synthesize(texts=text,
                          mock_audio_fp=mock_audio_fp,
-                         encoder_fp="./sounda_voice_model/encoder/pretrained1.pt",
-                         synth_fp="./sounda_voice_model/synth/pretrained-11-7-21_75k.pt",
-                         vocoder_fp="./sounda_voice_model/vocoder/g_hifigan.pt")
+                         encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
+                         synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
+                         vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
     save_audio(wav, sr,  "./"+os.path.basename(re.sub("_i", "_o", mock_audio_fp)))
     play_audio(wav.tobytes(), sr)
 
