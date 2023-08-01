@@ -17,14 +17,18 @@ import sys
 import threading
 import base64
 import json
+import os
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
 TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
 SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
+OUTPUT_DIR = "./output"
 logging.info(">>> [PORT]: %s" % PORT)
 logging.info(">>> [TTS_MODEL]: %s" % TTS_MODEL)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # [Model prepared]
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -77,11 +81,11 @@ def debug_func():
     with open("./debug.pkl", "wb") as fwb:
         pickle.dump(SID_INFO, fwb)
     for sid in SID_INFO:
-        wf = wave.open('output_sid_%s.wav' % sid, 'wb')
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(SAMPLE_WIDTH)
-        wf.setframerate(SAMPLE_RATE)
-        wf.writeframes(SID_INFO[sid]["buffer"])
+        wf_sid = wave.open(os.path.join(OUTPUT_DIR, 'sid_%s.wav' % sid), 'wb')
+        wf_sid.setnchannels(CHANNELS)
+        wf_sid.setsampwidth(SAMPLE_WIDTH)
+        wf_sid.setframerate(SAMPLE_RATE)
+        wf_sid.writeframes(SID_INFO[sid]["buffer"])
     return "message send!\n"
 
 
@@ -121,10 +125,6 @@ queue_text2speech = queue.Queue()
 
 # [DEBUG] 打开一个wav文件，每次收到的buffer都往里面写
 import wave
-wf = wave.open('output_server_buffer.wav', 'wb')
-wf.setnchannels(CHANNELS)
-wf.setsampwidth(SAMPLE_WIDTH)
-wf.setframerate(SAMPLE_RATE)
 
 # 子线程用whisper处理语音转文本
 def process_queue_speech2text():
@@ -212,6 +212,19 @@ def process_queue_text2speech():
 socketio.start_background_task(target=process_queue_speech2text)
 socketio.start_background_task(target=process_queue_text2speech)
 
+@socketio.on("speech2text", namespace=NAME_SPACE)
+def speech2text(data):
+    data = json.loads(data)
+    data["audio"] = base64.b64decode(data["audio"])
+    # ts = int(time.time())
+    ts = int(data['ts'])
+    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
+
+    # 将数据添加到队列中
+    queue_speech2text.put((data, t_str, request.sid))
+    logging.debug("size(estimate) of data_queue: %s" % queue_speech2text.qsize())
+
 
 @socketio.on("text2speech", namespace=NAME_SPACE)
 def text2speech(data):
@@ -229,20 +242,6 @@ def text2speech(data):
     # sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
     # rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
     # socketio.emit("audio_rsp", rsp, to=request.sid, namespace=NAME_SPACE)
-
-
-@socketio.on("speech2text", namespace=NAME_SPACE)
-def speech2text(data):
-    data = json.loads(data)
-    data["audio"] = base64.b64decode(data["audio"])
-    # ts = int(time.time())
-    ts = int(data['ts'])
-    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
-
-    # 将数据添加到队列中
-    queue_speech2text.put((data, t_str, request.sid))
-    logging.debug("size(estimate) of data_queue: %s" % queue_speech2text.qsize())
 
 
 @socketio.on("init", namespace=NAME_SPACE)
