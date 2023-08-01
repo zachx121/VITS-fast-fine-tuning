@@ -1,7 +1,11 @@
+import base64
+import sys
+import time
+
 import numpy as np
 
 import utils_audio
-
+import json
 
 # 先用english2ipa拿到国际注音的ipa，然后再把ipa注音转成romaji注音
 def ipa2romaji():
@@ -139,4 +143,50 @@ def get_file_as_buffer_stream():
             print("send.")
             buffer = f.readframes(bps)
 
+def send_text2speech():
+    import socketio
+    import logging
+    import threading
+    import utils_audio
+    sio = socketio.Client()
 
+    @sio.event(namespace='/MY_SPACE')
+    def connect():
+        logging.info('connection established')
+
+    @sio.event(namespace='/MY_SPACE')
+    def disconnect():
+        logging.info('disconnected from server')
+
+    @sio.event(namespace='/MY_SPACE')
+    def get_server_info(message):
+        logging.info("Server Says: '%s'\n" % message)
+        if message == "All init done.":
+            logging.info(">>> 服务端已就绪，可以开始说话...")
+
+    @sio.on("text2speech_rsp", namespace="/MY_SPACE")
+    def text2speech_rsp(message):
+        messaged = json.loads(message)
+        sr, audio_buffer = messaged['sr'], messaged['audio_buffer']
+        sr = int(sr)
+        audio_buffer = base64.b64decode(audio_buffer)
+        print("receive buffer: len=%s" % len(audio_buffer))
+        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()))
+        t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
+        t.start()
+        t.join()
+
+    host = "http://127.0.0.1:8080"
+    # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
+    sio.connect(host + '/MY_SPACE')
+    sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
+    print("send..")
+    sio.emit('text2speech', json.dumps({'text': "我啥都没听到"}), namespace="/MY_SPACE")
+    time.sleep(1)
+    print("send..")
+    time.sleep(1)
+    sio.emit('text2speech', json.dumps({'text': "我是谁"}), namespace="/MY_SPACE")
+
+
+if __name__ == '__main__':
+    send_text2speech()

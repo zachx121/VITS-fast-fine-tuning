@@ -5,6 +5,8 @@ import pyaudio
 import audioop
 import threading
 import logging
+import base64
+import json
 from multiprocessing import Process, Queue, Lock, Value
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-CLIENT]: %(message)s',
@@ -47,9 +49,10 @@ def play_audio(audio_buffer, sr, channels=1):
 
 @sio.on("speech2text_rsp", namespace="/MY_SPACE")
 def speech2text_rsp(message):
-    logging.info("       [tmp-words]: %s (eos:%s)" % (message['text'], message['eos']))
-    if message.get('eos', "0") == "1":
-        logging.info("[words]: %s" % message['text'])
+    messaged = json.loads(message)
+    logging.info("       [tmp-words]: %s (mid:%s)" % (messaged['text'], messaged['mid']))
+    if messaged["mid"] == "0":
+        logging.info("[words]: %s" % messaged['text'])
     # if GEN_AUDIO:
     #     sr, audio_buffer = message['sr'], message['audio_buffer']
     #     t = threading.Thread(target=play_audio, args=(audio_buffer, sr))
@@ -128,11 +131,12 @@ def send_data(buffer_queue, lock, buffer_queue_size):
                 buffer_queue_size.value -= 1
                 logging.debug("[SubProcess] sending... (size is %s, sid is %s)"
                               % (len(buffer_cache), sio.get_sid("/MY_SPACE")))
-                audio_info = {"audio": buffer_cache,
+                audio_info = {"audio": base64.b64encode(buffer_cache).decode(),
                               "channels": channels,
                               "sample_rate": sample_rate,
                               "ts": int(time.time())
                               }
+                audio_info = json.dumps(audio_info)
                 sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
                 wf.writeframes(buffer_cache)
 

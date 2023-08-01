@@ -160,7 +160,7 @@ def process_queue_speech2text():
 
         # 在锁外面发送消息
         if eos_tag:
-            rsp = json.dumps({"text": info["text"], "eos": "1"})
+            rsp = json.dumps({"text": info["text"], "mid": "0"})
             socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
 
         text = ""
@@ -170,7 +170,7 @@ def process_queue_speech2text():
                                            channels_inp=CHANNELS,
                                            fp16=False)
             logging.debug("  transcribed: '%s'" % text)
-            rsp = json.dumps({"text": text, "eos": "0"})
+            rsp = json.dumps({"text": text, "mid": "1"})
 
             queue_speech2text.task_done()
             logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
