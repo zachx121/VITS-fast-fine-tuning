@@ -1,6 +1,7 @@
 import logging
 import pickle
 import random
+import whisper.tokenizer
 import utils_audio
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
@@ -133,6 +134,8 @@ def process_queue_speech2text():
         # 从队列中获取数据
         data, t_str, sid = queue_speech2text.get()
         ts_data = data['ts']
+        lang = data.get("language", None)
+        lang = lang if lang in whisper.tokenizer.LANGUAGES else None
 
         if data is None:
             logging.info("data is None, break now. %s" % t_str)
@@ -168,6 +171,7 @@ def process_queue_speech2text():
             text = M_stt.transcribe_buffer(info["buffer"],
                                            sr_inp=SAMPLE_RATE,
                                            channels_inp=CHANNELS,
+                                           language=lang,
                                            fp16=False)
             logging.debug("  transcribed: '%s'" % text)
             rsp = json.dumps({"text": text, "mid": "1"})
