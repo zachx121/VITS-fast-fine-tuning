@@ -156,6 +156,9 @@ load_audio_raw = Speech2Text.load_audio_raw
 
 
 if __name__ == '__main__':
+    if False:
+        import whisper.tokenizer
+        print("all language: %s" % whisper.tokenizer.LANGUAGES.keys())
     # process file.
     if True:
         FILE_FP = sys.argv[1] if len(sys.argv) >= 2 else "./output_server_new.wav"
@@ -163,8 +166,10 @@ if __name__ == '__main__':
         logging.info(">>> use FILE_FP as '%s'" % FILE_FP)
         logging.info(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
         M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models").init()
-        text = M_stt.transcribe(FILE_FP)
+        text = M_stt.transcribe(FILE_FP, fp16=False)
         logging.info(">>> transcribe_file:\n%s" % text)
+        text = M_stt.transcribe(FILE_FP, fp16=False, language="en")
+        logging.info(">>> transcribe_file(lang=en):\n%s" % text)
 
     if False:
         MODEL_TYPE = "tiny"
