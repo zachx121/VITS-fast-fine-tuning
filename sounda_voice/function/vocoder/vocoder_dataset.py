@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 from pathlib import Path
-from function.vocoder.wavernn import audio
-import function.vocoder.wavernn.hparams as hp
+from sounda_voice.function.vocoder.wavernn import audio
+import sounda_voice.function.vocoder.wavernn.hparams as hp
 import numpy as np
 import torch
 

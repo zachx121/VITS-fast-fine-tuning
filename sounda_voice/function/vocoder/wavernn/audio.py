@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import librosa
-import function.vocoder.wavernn.hparams as hp
+import sounda_voice.function.vocoder.wavernn.hparams as hp
 from scipy.signal import lfilter
 import soundfile as sf
 

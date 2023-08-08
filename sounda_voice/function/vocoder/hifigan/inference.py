@@ -3,8 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import json
 import torch
-from utils.util import AttrDict
-from function.vocoder.hifigan.models import Generator
+from sounda_voice.utils.util import AttrDict
+from sounda_voice.function.vocoder.hifigan.models import Generator
 
 generator = None       # type: Generator
 output_sample_rate = None     

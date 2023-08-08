@@ -1,7 +1,7 @@
-from function.encoder.visualizations import Visualizations
-from function.encoder.data_objects import SpeakerVerificationDataLoader, SpeakerVerificationDataset
-from function.encoder.params_model import *
-from function.encoder.model import SpeakerEncoder
+from sounda_voice.function.encoder.visualizations import Visualizations
+from sounda_voice.function.encoder.data_objects import SpeakerVerificationDataLoader, SpeakerVerificationDataset
+from sounda_voice.function.encoder.params_model import *
+from sounda_voice.function.encoder.model import SpeakerEncoder
 from utils.profiler import Profiler
 from pathlib import Path
 import torch

@@ -1,10 +1,10 @@
 import torch
-from function.synthesizer import audio
-from function.synthesizer.hparams import hparams
-from function.synthesizer.models.tacotron import Tacotron
-from function.synthesizer.utils.symbols import symbols
-from function.synthesizer.utils.text import text_to_sequence
-from function.vocoder.display import simple_table
+from sounda_voice.function.synthesizer import audio
+from sounda_voice.function.synthesizer.hparams import hparams
+from sounda_voice.function.synthesizer.models.tacotron import Tacotron
+from sounda_voice.function.synthesizer.utils.symbols import symbols
+from sounda_voice.function.synthesizer.utils.text import text_to_sequence
+from sounda_voice.function.vocoder.display import simple_table
 from pathlib import Path
 from typing import Union, List
 import numpy as np

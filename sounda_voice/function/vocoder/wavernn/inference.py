@@ -1,5 +1,5 @@
-from function.vocoder.wavernn.function.fatchord_version import WaveRNN
-from function.vocoder.wavernn import hparams as hp
+from sounda_voice.function.vocoder.wavernn.function.fatchord_version import WaveRNN
+from sounda_voice.function.vocoder.wavernn import hparams as hp
 import torch
 
 

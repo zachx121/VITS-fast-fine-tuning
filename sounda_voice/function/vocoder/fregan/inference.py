@@ -4,7 +4,7 @@ import os
 import json
 import torch
 from utils.util import AttrDict
-from function.vocoder.fregan.generator import FreGAN
+from sounda_voice.function.vocoder.fregan.generator import FreGAN
 
 generator = None       # type: FreGAN
 output_sample_rate = None

@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as tFunctional
-from function.synthesizer.gst_hyperparameters import GSTHyperparameters as hp
-from function.synthesizer.hparams import hparams
+from sounda_voice.function.synthesizer.gst_hyperparameters import GSTHyperparameters as hp
+from sounda_voice.function.synthesizer.hparams import hparams
 
 
 class GlobalStyleToken(nn.Module):

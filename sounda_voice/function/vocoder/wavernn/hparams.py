@@ -1,4 +1,4 @@
-from function.synthesizer.hparams import hparams as _syn_hp
+from sounda_voice.function.synthesizer.hparams import hparams as _syn_hp
 
 
 # Audio settings------------------------------------------------------------------------

@@ -1,8 +1,8 @@
-from function.encoder.params_data import *
-from function.encoder.model import SpeakerEncoder
-from function.encoder.audio import preprocess_wav   # We want to expose this function from here
+from sounda_voice.function.encoder.params_data import *
+from sounda_voice.function.encoder.model import SpeakerEncoder
+from sounda_voice.function.encoder.audio import preprocess_wav   # We want to expose this function from here
 from matplotlib import cm
-from function.encoder import audio
+from sounda_voice.function.encoder import audio
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np

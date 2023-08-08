@@ -3,9 +3,9 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Conv1d, AvgPool1d, Conv2d
 from torch.nn.utils import weight_norm, spectral_norm
-from function.vocoder.fregan.utils import get_padding
-from function.vocoder.fregan.stft_loss import stft
-from function.vocoder.fregan.dwt import DWT_1D
+from sounda_voice.function.vocoder.fregan.utils import get_padding
+from sounda_voice.function.vocoder.fregan.stft_loss import stft
+from sounda_voice.function.vocoder.fregan.dwt import DWT_1D
 LRELU_SLOPE = 0.1
 
 

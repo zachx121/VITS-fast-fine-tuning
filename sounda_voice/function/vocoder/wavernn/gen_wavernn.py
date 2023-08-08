@@ -1,5 +1,5 @@
-from function.vocoder.wavernn.function.fatchord_version import  WaveRNN
-from function.vocoder.wavernn.audio import *
+from sounda_voice.function.vocoder.wavernn.function.fatchord_version import  WaveRNN
+from sounda_voice.function.vocoder.wavernn.audio import *
 
 
 def gen_testset(model: WaveRNN, test_set, samples, batched, target, overlap, save_path):

@@ -5,8 +5,8 @@ from .sublayer.pre_net import PreNet
 from .sublayer.cbhg import CBHG
 from .sublayer.lsa import LSA
 from .base import Base
-from function.synthesizer.gst_hyperparameters import GSTHyperparameters as gst_hp
-from function.synthesizer.hparams import hparams
+from sounda_voice.function.synthesizer.gst_hyperparameters import GSTHyperparameters as gst_hp
+from sounda_voice.function.synthesizer.hparams import hparams
 
 class Encoder(nn.Module):
     def __init__(self, num_chars, embed_dims=512, encoder_dims=256, K=5, num_highways=4, dropout=0.5):
