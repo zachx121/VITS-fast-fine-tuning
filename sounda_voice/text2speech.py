@@ -26,8 +26,7 @@ def synthesize(texts,
     gan_vocoder.load_model(Path(vocoder_fp))
 
     wav, sample_rate = librosa.load(mock_audio_fp)
-    # source_spec = Synthesizer.make_spectrogram(wav)
-    print("sample_rate from librosa.load is %s" % sample_rate)
+    #print("sample_rate from librosa.load is %s" % sample_rate)
     # preprocess
     encoder_wav = encoder.preprocess_wav(wav, sample_rate)
     embed, _, _ = encoder.embed_utterance(encoder_wav, return_partials=True)
@@ -99,13 +98,13 @@ class Text2Speech:
         # Load input text
         punctuation = '！，。、,'  # punctuate and split/clean text
         processed_texts = []
-        print("ori-text: %s" % texts)
+        #print("ori-text: %s" % texts)
         for text in texts.split("\n"):
             for processed_text in re.sub(r'[{}]+'.format(punctuation), '\n', text).split('\n'):
                 if processed_text:
                     processed_texts.append(processed_text.strip())
         texts = processed_texts
-        print("processed-text: %s" % texts)
+        #print("processed-text: %s" % texts)
 
         # synthesize and vocode
         embeds = [embed] * len(texts)

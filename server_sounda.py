@@ -24,23 +24,24 @@ sys.path.append("./")
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
-TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
+# TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
+TTS_MODEL_DIR = sys.argv[2] if len(sys.argv) >= 3 else "./sounda_voice_model_v1"
 SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 OUTPUT_DIR = "./output"
 VOICE_SAMPLE_DIR = "./voice_sample"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(VOICE_SAMPLE_DIR, exist_ok=True)
 logging.info(">>> [PORT]: %s" % PORT)
-logging.info(">>> [TTS_MODEL]: %s" % TTS_MODEL)
+logging.info(">>> [TTS_MODEL_DIR]: %s" % TTS_MODEL_DIR)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
 
 
 # [Model prepared]
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging.info(">>> Construct Model (device is '%s')" % DEVICE)
-M_tts = Text2Speech(encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
-                    synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
-                    vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
+M_tts = Text2Speech(encoder_fp=os.path.join(TTS_MODEL_DIR, "encoder.pt"),
+                    synth_fp=os.path.join(TTS_MODEL_DIR, "synth.pt"),
+                    vocoder_fp=os.path.join(TTS_MODEL_DIR, "vocoder.pt"))
 M_stt = Speech2Text(model_type="tiny", download_root=SST_MODEL_DIR, device=DEVICE)
 
 logging.info(">>> Construct Model done.")
