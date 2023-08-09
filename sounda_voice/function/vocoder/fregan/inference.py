@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import json
 import torch
-from utils.util import AttrDict
+from sounda_voice.utils.util import AttrDict
 from sounda_voice.function.vocoder.fregan.generator import FreGAN
 
 generator = None       # type: FreGAN

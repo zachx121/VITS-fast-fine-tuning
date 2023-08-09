@@ -170,6 +170,8 @@ if __name__ == '__main__':
         logging.info(">>> transcribe_file:\n%s" % text)
         text = M_stt.transcribe(FILE_FP, fp16=False, language="en")
         logging.info(">>> transcribe_file(lang=en):\n%s" % text)
+        text = M_stt.transcribe(FILE_FP, fp16=False, language=None)
+        logging.info(">>> transcribe_file(lang=en):\n%s" % text)
 
     if False:
         MODEL_TYPE = "tiny"

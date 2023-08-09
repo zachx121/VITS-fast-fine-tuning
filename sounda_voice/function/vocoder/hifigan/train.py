@@ -14,7 +14,7 @@ from torch.distributed import init_process_group
 from torch.nn.parallel import DistributedDataParallel
 from models.vocoder.hifigan.meldataset import MelDataset, mel_spectrogram, get_dataset_filelist
 from models.vocoder.hifigan.models import Generator, MultiPeriodDiscriminator, MultiScaleDiscriminator
-from utils.loss import feature_loss, generator_loss, discriminator_loss
+from sounda_voice.function.loss import feature_loss, generator_loss, discriminator_loss
 
 from models.vocoder.hifigan.utils import plot_spectrogram, scan_checkpoint, load_checkpoint, save_checkpoint
 

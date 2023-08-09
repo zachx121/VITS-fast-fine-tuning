@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 from torch.nn import Conv1d
 from torch.nn.utils import weight_norm, remove_weight_norm
-from utils.util import init_weights, get_padding, convert_pad_shape, convert_pad_shape, subsequent_mask, fused_add_tanh_sigmoid_multiply
+from sounda_voice.utils.util import init_weights, get_padding, convert_pad_shape, convert_pad_shape, subsequent_mask, fused_add_tanh_sigmoid_multiply
 from .common.transforms import piecewise_rational_quadratic_transform
 
 LRELU_SLOPE = 0.1

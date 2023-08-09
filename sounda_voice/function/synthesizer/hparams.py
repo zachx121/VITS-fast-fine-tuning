@@ -1,4 +1,4 @@
-from utils.hparams import HParams
+from sounda_voice.utils.hparams import HParams
 
 hparams = HParams(
         ### Signal Processing (used in both synthesizer and vocoder)

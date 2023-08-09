@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from utils.util import init_weights, get_padding
+from sounda_voice.util import init_weights, get_padding
 
 LRELU_SLOPE = 0.1
 
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     '''
     with open('config.json') as f:
         data = f.read()
-    from utils import AttrDict
+    from sounda_voice.utils.util import AttrDict
     import json
     json_config = json.loads(data)
     h = AttrDict(json_config)

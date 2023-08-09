@@ -6,7 +6,7 @@ import torch.utils.data
 import numpy as np
 from librosa.util import normalize
 from scipy.io.wavfile import read
-from utils.audio_utils import mel_spectrogram
+from sounda_voice.function.audio_utils import mel_spectrogram
 
 MAX_WAV_VALUE = 32768.0
 

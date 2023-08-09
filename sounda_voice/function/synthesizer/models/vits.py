@@ -9,7 +9,7 @@ import monotonic_align
 
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from utils.util import init_weights, get_padding, sequence_mask, rand_slice_segments, generate_path
+from sounda_voice.utils.util import init_weights, get_padding, sequence_mask, rand_slice_segments, generate_path
 
 
 class StochasticDurationPredictor(nn.Module):

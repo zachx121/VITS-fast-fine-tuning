@@ -8,7 +8,8 @@ logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 from speech2text import Speech2Text
-from text2speech import Text2Speech
+#from text2speech import Text2Speech
+from sounda_voice.text2speech import Text2Speech
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit,  join_room
 import time
@@ -19,24 +20,27 @@ import threading
 import base64
 import json
 import os
+sys.path.append("./")
 
 # [Params]
 PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
 TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
 SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 OUTPUT_DIR = "./output"
+VOICE_SAMPLE_DIR = "./voice_sample"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(VOICE_SAMPLE_DIR, exist_ok=True)
 logging.info(">>> [PORT]: %s" % PORT)
 logging.info(">>> [TTS_MODEL]: %s" % TTS_MODEL)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # [Model prepared]
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging.info(">>> Construct Model (device is '%s')" % DEVICE)
-M_tts = Text2Speech(model_dir=TTS_MODEL,
-                    config_fp="./configs/finetune_speaker.json",
-                    device=DEVICE)
+M_tts = Text2Speech(encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
+                    synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
+                    vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
 M_stt = Speech2Text(model_type="tiny", download_root=SST_MODEL_DIR, device=DEVICE)
 
 logging.info(">>> Construct Model done.")
@@ -199,17 +203,29 @@ def process_queue_text2speech():
 
         t_begin = time.time()
         logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
-        # 处理数据
-        sr, audio = M_tts.tts_fn(text=data["text"],
-                                 speaker="audio",
-                                 language="auto")
-        rsp = {"audio_buffer": base64.b64encode(audio.tobytes()).decode(), "sr": str(sr)}
-        rsp = json.dumps(rsp)
-        queue_text2speech.task_done()
-        logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
-        socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
-        logging.debug("size of data_queue: %s" % queue_text2speech.qsize())
-
+        mock_voice_fp = os.path.join(VOICE_SAMPLE_DIR, data["speaker"]+"_"+data["language"]+".wav")
+        if os.path.exists(mock_voice_fp):
+            # 处理数据
+            audio, sr = M_tts.synth_file(texts=data["text"],
+                                         mock_audio_fp=mock_voice_fp)
+            rsp = {"audio_buffer": base64.b64encode(audio.tobytes()).decode(),
+                   "sr": str(sr),
+                   "status": "0",
+                   "msg": "success."}
+            rsp = json.dumps(rsp)
+            queue_text2speech.task_done()
+            logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
+            socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
+            logging.debug("size of data_queue: %s" % queue_text2speech.qsize())
+        else:
+            logging.error("mock_voice_fp not found at '%s'" % mock_voice_fp)
+            rsp = {"audio_buffer": "",
+                   "sr": "",
+                   "status": "1",
+                   "msg": "fail. not found speaker '%s'" % data['speaker']}
+            rsp = json.dumps(rsp)
+            queue_text2speech.task_done()
+            socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
 
 # 创建并启动一个新线程来处理队列中的数据
 # threading.Thread(target=process_queue, daemon=True).start()
@@ -247,6 +263,21 @@ def text2speech(data):
     # rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
     # socketio.emit("audio_rsp", rsp, to=request.sid, namespace=NAME_SPACE)
 
+@socketio.on("upload_speaker", namespace=NAME_SPACE)
+def upload_speaker(data):
+    print("upload_speaker received ...")
+    data = json.loads(data)
+    data["audio"] = base64.b64decode(data["audio"])
+    ts = int(time.time())
+    t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"{NAME_SPACE} upload_speaker received an input.(%s %s)" % (ts, t_str))
+
+    wf_sid = wave.open(os.path.join(VOICE_SAMPLE_DIR, data["speaker"]+"_"+data["language"]+".wav"), 'wb')
+    wf_sid.setnchannels(CHANNELS)
+    wf_sid.setsampwidth(SAMPLE_WIDTH)
+    wf_sid.setframerate(SAMPLE_RATE)
+    wf_sid.writeframes(data['audio'])
+    socketio.emit("upload_speaker_rsp", json.dumps({"status": "0"}), to=request.sid, namespace=NAME_SPACE)
 
 @socketio.on("init", namespace=NAME_SPACE)
 def init(*args, **kwargs):

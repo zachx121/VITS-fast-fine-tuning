@@ -9,9 +9,9 @@ from scipy.io.wavfile import write
 import numpy as np
 import pyaudio
 import librosa
-from function.encoder import inference as encoder
-from function.synthesizer.inference import Synthesizer
-from function.vocoder.hifigan import inference as gan_vocoder
+from sounda_voice.function.encoder import inference as encoder
+from sounda_voice.function.synthesizer.inference import Synthesizer
+from sounda_voice.function.vocoder.hifigan import inference as gan_vocoder
 from pathlib import Path
 
 def synthesize(texts,
@@ -22,7 +22,7 @@ def synthesize(texts,
                ):
     # load function
     encoder.load_model(Path(encoder_fp))
-    current_synt = Synthesizer(Path(synth_fp))
+    current_synt = Synthesizer(Path(synth_fp), verbose=False)
     gan_vocoder.load_model(Path(vocoder_fp))
 
     wav, sample_rate = librosa.load(mock_audio_fp)
@@ -79,9 +79,14 @@ class Text2Speech:
         self.encoder_fp = encoder_fp
         self.synth_fp = synth_fp
         self.vocoder_fp = vocoder_fp
-        self.current_synt = Synthesizer(Path(self.synth_fp))
+        self.current_synt = None
+        self.is_init = False
+
+    def init(self):
+        self.current_synt = Synthesizer(Path(self.synth_fp), verbose=False)
         encoder.load_model(Path(self.encoder_fp))
         gan_vocoder.load_model(Path(self.vocoder_fp))
+        self.is_init = True
 
     def synth_file(self, texts, mock_audio_fp):
         wav, sample_rate = librosa.load(mock_audio_fp)
@@ -147,6 +152,7 @@ if __name__ == '__main__':
     M = Text2Speech(encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
                     synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
                     vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
+    M.init()
     # a
     wav, sr = M.synth_file(text, mock_audio_fp)
     print(type(wav), wav.shape, sr)

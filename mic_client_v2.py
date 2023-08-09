@@ -119,7 +119,7 @@ buffer_queue = Queue()
 buffer_queue_size = Value('i', 0)
 
 def send_data(buffer_queue, lock, buffer_queue_size):
-    wf = wave.open('output_mic_v2.wav', 'wb')
+    wf = wave.open('tmp_output_mic_v2.wav', 'wb')
     wf.setnchannels(channels)
     wf.setsampwidth(sample_width)
     wf.setframerate(sample_rate)
@@ -134,6 +134,7 @@ def send_data(buffer_queue, lock, buffer_queue_size):
                 audio_info = {"audio": base64.b64encode(buffer_cache).decode(),
                               "channels": channels,
                               "sample_rate": sample_rate,
+                              "language": "zh",
                               "ts": int(time.time())
                               }
                 audio_info = json.dumps(audio_info)

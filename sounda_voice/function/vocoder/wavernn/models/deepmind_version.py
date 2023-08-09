@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.display import *
-from utils.dsp import *
+from sounda_voice.function.display import *
+from sounda_voice.function.dsp import *
 
 
 class WaveRNN(nn.Module) :
