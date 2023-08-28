@@ -71,8 +71,12 @@ class Text2Speech:
 
         return text
 
+    # noise_scale 感情变化程度
+    # noise_scale_w 音素发音长度
     def tts_fn(self, text, speaker, language,
                speed=1.0,
+               noise_scale=0.667,
+               noise_scale_w=0.8,
                text_cleaners=None):
         text_cleaners = ["zh_ja_en_mixture_cleaners"] if text_cleaners is None else text_cleaners
         if language is not None:
@@ -89,7 +93,8 @@ class Text2Speech:
             x_tst_lengths = LongTensor([stn_tst.size(0)]).to(self.device)
             sid = LongTensor([speaker_id]).to(self.device)
             audio = self.model.infer(x_tst, x_tst_lengths, sid=sid,
-                                     noise_scale=.667, noise_scale_w=0.8,
+                                     noise_scale=noise_scale, 
+                                     noise_scale_w=noise_scale_w,
                                      length_scale=1.0 / speed)[0][0, 0].data.cpu().float().numpy()
         del stn_tst, x_tst, x_tst_lengths, sid
         return self.hparams.data.sampling_rate, audio
