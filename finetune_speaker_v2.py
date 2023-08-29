@@ -16,7 +16,9 @@ from tqdm import tqdm
 
 import librosa
 import logging
-
+logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.INFO)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 logging.getLogger('numba').setLevel(logging.WARNING)
 
@@ -310,7 +312,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                                speaker="四郎配音",
                                language="auto",  # 用Mix的话就相当于直接读字母发音了
                                speed=1)
-        utils_audio.save_audio(wav, sr, fp="./mock_vits_%s.wav" % global_step)
+        utils_audio.save_audio(wav, sr, fp=os.path.join(hps.model_dir, "mock_%s.wav" % global_step))
         del M_tts
         del sr, wav
 
