@@ -37,7 +37,8 @@ from losses import (
   kl_loss
 )
 from mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-
+from text2speech import Text2Speech
+import utils_audio
 
 torch.backends.cudnn.benchmark = True
 global_step = 0
@@ -301,6 +302,17 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
               if os.path.exists(old_d):
                   print(f"remove {old_d}")
                   os.remove(old_d)
+
+        M_tts = Text2Speech(model_dir=os.path.join(hps.model_dir, "G_latest.pth"),
+                            config_fp=os.path.join(hps.model_dir, "config.json")).init()
+        sr, wav = M_tts.tts_fn(text="致以诚挚的问候和美好的祝愿",
+                               speaker="四郎配音",
+                               language="auto",  # 用Mix的话就相当于直接读字母发音了
+                               speed=1)
+        utils_audio.save_audio(wav, sr, fp="./mock_vits_%s.wav" % global_step)
+        del M_tts
+        del sr, wav
+
     global_step += 1
     if epoch > hps.max_epochs:
         print("Maximum epoch reached, closing training...")

@@ -78,7 +78,7 @@ class Text2Speech:
                noise_scale=0.667,
                noise_scale_w=0.8,
                text_cleaners=None):
-        text_cleaners = ["zh_ja_en_mixture_cleaners"] if text_cleaners is None else text_cleaners
+        text_cleaners = text_cleaners if text_cleaners is not None else self.hparams.data.text_cleaners
         if language is not None:
             if language == "auto":
                 text = self.__mark(text)
