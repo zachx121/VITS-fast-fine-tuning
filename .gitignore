@@ -2,3 +2,7 @@
 *.xml
 *.iml
 .idea/*
+OUTPUT_MODEL*
+*.ipynb_checkpoints
+sampled_audio4ft*
+pretrained_models*
