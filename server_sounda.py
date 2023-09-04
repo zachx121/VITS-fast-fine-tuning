@@ -76,7 +76,8 @@ SAMPLE_WIDTH = 2  # 标准的16位PCM音频中，每个样本占用2个字节
 CHANNELS = 1  # 音频通道数
 CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
 BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
-RMS_HOLDER = 777
+RMS_LAST_TIME = 0.5  # 取音频的最后多久计算RMS
+RMS_HOLDER = 777  # 最后一段音频小于多少音量时，视为结束，清空buffer
 
 # 以「127.0.0.1:8080/debug」这个页面的访问，来触发一次服务端对客户端的socket消息发送
 # curl 127.0.0.1:8080/debug
@@ -163,8 +164,8 @@ def process_queue_speech2text():
 
                 # 最后一秒的音量
                 lb = len(info["buffer"])
-                volume = audioop.rms(info["buffer"][lb - int(0.5 * BYTES_PER_SEC):lb], SAMPLE_WIDTH)
-                logging.debug("    最后0.5秒的音量: %s" % volume)
+                volume = audioop.rms(info["buffer"][lb - int(RMS_LAST_TIME * BYTES_PER_SEC):lb], SAMPLE_WIDTH)
+                logging.debug("    最后 %s 秒的音量: %s" % (RMS_LAST_TIME, volume))
                 if volume <= RMS_HOLDER:
                     logging.debug("    最后0.5秒的音量小于阈值, 清空buffer")
                     eos_tag = True
