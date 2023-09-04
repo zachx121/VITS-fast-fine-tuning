@@ -4,14 +4,15 @@ import random
 import whisper.tokenizer
 import utils_audio
 
-logging.basicConfig(format='[%(asctime)s-%(levelname)s-SERVER]: %(message)s',
+logging.basicConfig(format='[%(asctime)s-%(thread)d-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 from speech2text import Speech2Text
 #from text2speech import Text2Speech
 from sounda_voice.text2speech import Text2Speech
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, current_app
 from flask_socketio import SocketIO, emit,  join_room
+from concurrent.futures import ThreadPoolExecutor
 import time
 import audioop
 import torch
@@ -108,6 +109,8 @@ def connect_msg():
         "buffer": b"",
         "text": ""
     }
+    # app = current_app._get_current_object()
+    # thread = socketio.start_background_task(target=process_queue_text2speech, app=app)
     with LOCK:
         SID_INFO.update({request.sid: info})
 
@@ -126,6 +129,7 @@ import threading
 # 创建一个线程安全的队列
 queue_speech2text = queue.Queue()
 queue_text2speech = queue.Queue()
+executor = ThreadPoolExecutor(max_workers=10)  # 10个工作线程
 # 创建一个线程池
 # executor = ThreadPoolExecutor(max_workers=5)
 
@@ -147,24 +151,25 @@ def process_queue_speech2text():
             break
 
         t_begin = time.time()
-        logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
+        logging.debug("Process of sid-%s-%s start." % (sid, t_str))
 
         eos_tag =False
         # 处理数据
         with LOCK:
-            info = SID_INFO[sid]
-            info["buffer"] += data['audio']
-            info["last_active_time"] = ts_data
+            if sid in SID_INFO:
+                info = SID_INFO[sid]
+                info["buffer"] += data['audio']
+                info["last_active_time"] = ts_data
 
-            # 最后一秒的音量
-            lb = len(info["buffer"])
-            volume = audioop.rms(info["buffer"][lb - int(0.5 * BYTES_PER_SEC):lb], SAMPLE_WIDTH)
-            logging.debug("最后0.5秒的音量: %s" % volume)
-            if volume <= RMS_HOLDER:
-                logging.debug("    最后0.5秒的音量小于阈值, 清空buffer")
-                eos_tag = True
-                info["buffer"] = b""
-            SID_INFO.update({sid: info})
+                # 最后一秒的音量
+                lb = len(info["buffer"])
+                volume = audioop.rms(info["buffer"][lb - int(0.5 * BYTES_PER_SEC):lb], SAMPLE_WIDTH)
+                logging.debug("    最后0.5秒的音量: %s" % volume)
+                if volume <= RMS_HOLDER:
+                    logging.debug("    最后0.5秒的音量小于阈值, 清空buffer")
+                    eos_tag = True
+                    info["buffer"] = b""
+                SID_INFO.update({sid: info})
 
         # 在锁外面发送消息
         if eos_tag:
@@ -178,17 +183,18 @@ def process_queue_speech2text():
                                            channels_inp=CHANNELS,
                                            language=lang,
                                            fp16=False)
-            logging.debug("  transcribed: '%s'" % text)
+            logging.debug("    transcribed: '%s'" % text)
             rsp = json.dumps({"text": text, "mid": "1"})
 
             queue_speech2text.task_done()
-            logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
+            logging.debug("    Process of sid-%s-%s finished.(elapsed %.4f)" % (sid, t_str, time.time() - t_begin))
             socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
             logging.debug("size of data_queue: %s" % queue_speech2text.qsize())
 
         with LOCK:
-            info = SID_INFO[sid]
-            info["text"] = text
+            if sid in SID_INFO:
+                info = SID_INFO[sid]
+                info["text"] = text
 
 # 子线程用vits进行声音合成（文本转语音）
 def process_queue_text2speech():
@@ -230,8 +236,9 @@ def process_queue_text2speech():
 
 # 创建并启动一个新线程来处理队列中的数据
 # threading.Thread(target=process_queue, daemon=True).start()
-socketio.start_background_task(target=process_queue_speech2text)
-socketio.start_background_task(target=process_queue_text2speech)
+for _ in range(5):
+    socketio.start_background_task(target=process_queue_speech2text)
+    socketio.start_background_task(target=process_queue_text2speech)
 
 @socketio.on("speech2text", namespace=NAME_SPACE)
 def speech2text(data):
@@ -240,11 +247,11 @@ def speech2text(data):
     # ts = int(time.time())
     ts = int(data['ts'])
     t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
+    logging.debug(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
 
     # 将数据添加到队列中
     queue_speech2text.put((data, t_str, request.sid))
-    logging.debug("size(estimate) of data_queue: %s" % queue_speech2text.qsize())
+    logging.debug("    size(estimate) of data_queue: %s" % queue_speech2text.qsize())
 
 
 @socketio.on("text2speech", namespace=NAME_SPACE)
