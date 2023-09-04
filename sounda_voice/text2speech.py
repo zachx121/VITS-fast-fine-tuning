@@ -17,9 +17,9 @@ from pathlib import Path
 
 def synthesize(texts,
                mock_audio_fp,
-               encoder_fp="./coder/encoder/pretrained1.pt",
-               synth_fp="./model/pretrained-11-7-21_75k.pt",
-               vocoder_fp="./coder/vocoder/pretrained/g_hifigan.pt"
+               encoder_fp="~/models/pretrained1.pt",
+               synth_fp="~/models/model_zn_v1.pt",
+               vocoder_fp="~/models/g_hifigan.pt"
                ):
     # load function
     encoder.load_model(Path(encoder_fp))
