@@ -28,6 +28,9 @@ play_audio = play_audio_buffer
 def save_audio_buffer(audio_buffer, sr, fp):
     scipy.io.wavfile.write(fp, sr, np.frombuffer(audio_buffer, dtype=np.float32))
 
+def save_audio(audio, sr, fp):
+    scipy.io.wavfile.write(fp, sr, audio)
+    
 # 计算音量，默认每0.5s一个计算gap
 def cal_rms(inp_buffer, delta=0.5, sr=SAMPLE_RATE, sw=SAMPLE_WIDTH, c=CHANNELS):
     bps = sr*sw*c

@@ -16,9 +16,9 @@ from pathlib import Path
 
 def synthesize(texts,
                mock_audio_fp,
-               encoder_fp="./coder/encoder/pretrained1.pt",
-               synth_fp="./model/pretrained-11-7-21_75k.pt",
-               vocoder_fp="./coder/vocoder/pretrained/g_hifigan.pt"
+               encoder_fp="~/models/pretrained1.pt",
+               synth_fp="~/models/model_zn_v1.pt",
+               vocoder_fp="~/models/g_hifigan.pt"
                ):
     # load function
     encoder.load_model(Path(encoder_fp))
@@ -147,30 +147,31 @@ if __name__ == '__main__':
     text2 = "连续语音测试特殊符号「测试」，阿拉伯数字测试1234，需要单独拼音映射吗，长句测试样例"
 
     text = text1
-    mock_audio_fp = "/Users/didi/0-Code/Sounda/voice/input/female_p1_i.wav"
-    M = Text2Speech(encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
-                    synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
-                    vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
+    mock_audio_fp = "/root/audio_samples/female_p1_zh.wav"
+    mock_audio_fp = "/root/audio_samples/haichao.wav"
+    M = Text2Speech(encoder_fp="/root/models/pretrained1.pt",
+                    synth_fp="/root/models/model_zn_v1.pt",  # ~/models/pretrained-11-7-21_75k.pt
+                    vocoder_fp="/root/models/g_hifigan.pt")
     M.init()
     # a
     wav, sr = M.synth_file(text, mock_audio_fp)
     print(type(wav), wav.shape, sr)
-    play_audio(wav.tobytes(), sr)
+    # play_audio(wav.tobytes(), sr)
 
-    # b
-    wav, sample_rate = librosa.load(mock_audio_fp)
-    wav, sr = M._notwork_synth(text, wav)
-    print(type(wav), wav.shape, sr)
-    play_audio(wav.tobytes(), sr)
+#     # b
+#     wav, sample_rate = librosa.load(mock_audio_fp)
+#     wav, sr = M._notwork_synth(text, wav)
+#     print(type(wav), wav.shape, sr)
+#     play_audio(wav.tobytes(), sr)
 
-    # c
-    wav, sr = synthesize(texts=text,
-                         mock_audio_fp=mock_audio_fp,
-                         encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
-                         synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
-                         vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
-    save_audio(wav, sr,  "./"+os.path.basename(re.sub("_i", "_o", mock_audio_fp)))
-    print(type(wav), wav.shape, sr)
-    play_audio(wav.tobytes(), sr)
+#     # c
+#     wav, sr = synthesize(texts=text,
+#                          mock_audio_fp=mock_audio_fp,
+#                          encoder_fp="./sounda_voice_models/encoder/pretrained1.pt",
+#                          synth_fp="./sounda_voice_models/synth/pretrained-11-7-21_75k.pt",
+#                          vocoder_fp="./sounda_voice_models/vocoder/g_hifigan.pt")
+#     save_audio(wav, sr,  "./"+os.path.basename(re.sub("_i", "_o", mock_audio_fp)))
+#     print(type(wav), wav.shape, sr)
+#     play_audio(wav.tobytes(), sr)
 
 
