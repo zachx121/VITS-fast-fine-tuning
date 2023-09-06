@@ -10,7 +10,7 @@ import struct
 try:
     import webrtcvad
 except:
-    warn("Unable to import 'webrtcvad'. This package enables noise removal and is recommended.")
+    # warn("Unable to import 'webrtcvad'. This package enables noise removal and is recommended.")
     webrtcvad=None
 
 int16_max = (2 ** 15) - 1

@@ -3,7 +3,7 @@ import os
 import re
 import sys
 sys.path.append("./")
-print(sys.path)
+# print(sys.path)
 
 import utils_audio
 from scipy.io.wavfile import write

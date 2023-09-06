@@ -169,17 +169,17 @@ class AudioEncoder(nn.Module):
         self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int
     ):
         super().__init__()
-        logging.debug("executing Conv1d")
+        #logging.debug("executing Conv1d")
         self.conv1 = Conv1d(n_mels, n_state, kernel_size=3, padding=1)
         self.conv2 = Conv1d(n_state, n_state, kernel_size=3, stride=2, padding=1)
-        logging.debug("executing register_buffer")
+        #logging.debug("executing register_buffer")
         self.register_buffer("positional_embedding", sinusoids_np(n_ctx, n_state))
 
-        logging.debug("executing nn.ModuleList")
+        #logging.debug("executing nn.ModuleList")
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
             [ResidualAttentionBlock(n_state, n_head) for _ in range(n_layer)]
         )
-        logging.debug("executing LayerNorm")
+        #logging.debug("executing LayerNorm")
         self.ln_post = LayerNorm(n_state)
 
     def forward(self, x: Tensor):
@@ -250,7 +250,7 @@ class Whisper(nn.Module):
     def __init__(self, dims: ModelDimensions):
         super().__init__()
         self.dims = dims
-        logging.debug("executing AudioEncoder")
+        #logging.debug("executing AudioEncoder")
         self.encoder = AudioEncoder(
             self.dims.n_mels,
             self.dims.n_audio_ctx,
@@ -258,7 +258,7 @@ class Whisper(nn.Module):
             self.dims.n_audio_head,
             self.dims.n_audio_layer,
         )
-        logging.debug("executing TextDecoder")
+        #logging.debug("executing TextDecoder")
         self.decoder = TextDecoder(
             self.dims.n_vocab,
             self.dims.n_text_ctx,

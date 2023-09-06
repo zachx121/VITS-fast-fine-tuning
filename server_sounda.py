@@ -7,6 +7,15 @@ import utils_audio
 logging.basicConfig(format='[%(asctime)s-%(thread)d-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
+
+import warnings
+import numba
+warnings.filterwarnings("ignore", category=numba.NumbaDeprecationWarning)
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
+logging.getLogger('numba').setLevel(logging.ERROR)
+logging.getLogger('torch').setLevel(logging.ERROR)
+
+
 from speech2text import Speech2Text
 #from text2speech import Text2Speech
 from sounda_voice.text2speech import Text2Speech
@@ -237,9 +246,8 @@ def process_queue_text2speech():
 
 # 创建并启动一个新线程来处理队列中的数据
 # threading.Thread(target=process_queue, daemon=True).start()
-for _ in range(5):
-    socketio.start_background_task(target=process_queue_speech2text)
-    socketio.start_background_task(target=process_queue_text2speech)
+socketio.start_background_task(target=process_queue_speech2text)
+socketio.start_background_task(target=process_queue_text2speech)
 
 @socketio.on("speech2text", namespace=NAME_SPACE)
 def speech2text(data):

@@ -1,5 +1,6 @@
 import time
 import wave
+# pip install python-socketio
 import socketio
 import pyaudio
 import audioop
@@ -90,8 +91,7 @@ stream = p.open(format=sample_format,
                 rate=sample_rate,
                 frames_per_buffer=chunk,
                 input=True)
-logging.info(">>> 开启录音，等待服务器就绪...")
-sio.emit('init', {}, namespace='/MY_SPACE')
+
 # 音量开始超过阈值时，持续添加音频数据到缓冲区，直到持续两秒小于阈值时停止添加，并在子进程将缓冲区的内容发送给服务器；
 # 同时，还需要在子进程持续检测缓冲区的音频长度是否超过5秒，如果超过5秒直接发送给服务器并清空缓冲区；
 # 在整个过程中，需要保证不阻塞主进程，以便接收到用户的语音输入。
@@ -149,6 +149,7 @@ if __name__ == '__main__':
     send_process.start()
 
     try:
+        logging.info(">>> 开始监听麦克风")
         while True:
             # chunk: 每次读取的音频数据的长度
             data = stream.read(chunk)

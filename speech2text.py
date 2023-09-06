@@ -11,6 +11,7 @@ import logging
 logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.INFO)
+from debug_whisper_models import ModelDimensions, Whisper
 
 
 class Speech2Text:
@@ -19,23 +20,24 @@ class Speech2Text:
         self.device = device if device is not None else default_device
         self.model_type = model_type
         self.download_root = download_root
-        self.model = None
+        self.model: Whisper = None
         self.is_init = False
 
     def init(self, prehot_audio="./prehot_speech2text.wav"):
-        logging.info(">>> loading whiser model")
+        # logging.info(">>> loading whiser model")
         # self.model = whisper.load_model(self.model_type, download_root=self.download_root)
-        self.model = self.__load_model()
-        logging.info(">>> loading whiser model(done.)")
+        self.model: Whisper = self.__load_model()
+        # logging.info(">>> loading whiser model(done.)")
         try:
             logging.info(">>> try to transcribe with prehot_audio")
-            self.transcribe(prehot_audio, fp16=False)
+            logging.debug("    result: '%s'" % self.transcribe(prehot_audio, fp16=False))
         except (Exception,) as e:
             logging.warning("pre_hot fail. %s" % e)
         self.is_init = True
+        # self.model.share_memory()  # 不支持sparseTensor
         return self
 
-    def __load_model(self):
+    def __load_model(self) -> Whisper:
         _ALIGNMENT_HEADS = {
             "tiny.en": b"ABzY8J1N>@0{>%R00Bk>$p{7v037`oCl~+#00",
             "tiny": b"ABzY8bu8Lr0{>%RKn9Fp%m@SkK7Kt=7ytkO",
@@ -51,29 +53,28 @@ class Speech2Text:
         }
         alignment_heads = _ALIGNMENT_HEADS[self.model_type]
         checkpoint_file = os.path.join(self.download_root, self.model_type+".pt")
-        logging.debug("loading from ckpt_file: %s" % checkpoint_file)
+        # logging.debug("loading from ckpt_file: %s" % checkpoint_file)
         open(checkpoint_file, "rb")
         with open(checkpoint_file, "rb") as fp:
             checkpoint = torch.load(fp, map_location=self.device)
-        logging.debug("loading from ckpt_file: %s (done.)" % checkpoint_file)
+        # logging.debug("loading from ckpt_file: %s (done.)" % checkpoint_file)
         del checkpoint_file
 
-        from debug_whisper_models import ModelDimensions,Whisper
-        logging.debug("executing ModelDimensions")
+        #logging.debug("executing ModelDimensions")
         dims = ModelDimensions(**checkpoint["dims"])
-        logging.debug("executing Whisper")
-        logging.debug(">>> ModelDimensions as follow:")
-        logging.debug(str(dims))
-        logging.debug(">>>")
+        #logging.debug("executing Whisper")
+        # logging.debug(">>> ModelDimensions as follow:")
+        # logging.debug(str(dims))
+        # logging.debug(">>>")
         model = Whisper(dims)
-        logging.debug("executing load_state_dict")
+        #logging.debug("executing load_state_dict")
         model.load_state_dict(checkpoint["model_state_dict"])
 
         if alignment_heads is not None:
-            logging.debug("use alignment_heads as: %s" % alignment_heads)
+            # logging.debug("use alignment_heads as: %s" % alignment_heads)
             model.set_alignment_heads(alignment_heads)
 
-        logging.debug("executing model.to(self.device)")
+        #logging.debug("executing model.to(self.device)")
         return model.to(self.device)
 
     def transcribe(self, audio_file, **kwargs):
@@ -89,12 +90,14 @@ class Speech2Text:
     def transcribe_buffer(self, audio_buffer, sr_inp, channels_inp, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
         audio = self.load_audio_raw(audio_buffer, sr_inp=sr_inp, channels=channels_inp)
+        # logging.debug("transcribe_buffer>load_audio_raw done.(%s)" % audio.shape)
         result = self.model.transcribe(audio,
                                        task="transcribe",
                                        beam_size=5,
                                        best_of=5,
                                        word_timestamps=False,
                                        **kwargs)
+        # logging.debug("transcribe_buffer>transcribe done.(%s...)" % str(result)[:15])
         return result['text']
 
     @staticmethod
