@@ -42,7 +42,7 @@ import wave
 # TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
 # TTS_MODEL_DIR = sys.argv[2] if len(sys.argv) >= 3 else "./sounda_voice_model_v1"
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
-PORT = 8080
+PORT = 6006
 TTS_MODEL_DIR = "./sounda_voice_model_v1"
 SST_MODEL_DIR = "./whisper_models"
 OUTPUT_DIR = "./output"
@@ -121,7 +121,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                         rsp = json.dumps({"text": text, "mid": "0"})
                         # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
                         q_output.put((rsp, sid))
-                        os.system("curl 127.0.0.1:8080/exec_emit")
+                        os.system("curl 127.0.0.1:%s/exec_emit" % PORT)
 
                 sid_info.update({sid: info})
 
@@ -142,7 +142,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
             logging.debug(_pid_name[os.getpid()] + "    Process of sid-%s-%s finished.(elapsed %.4f)" % (sid, t_str, time.time() - t_begin))
             # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
             q_output.put((rsp, sid))
-            os.system("curl 127.0.0.1:8080/exec_emit")
+            os.system("curl 127.0.0.1:%s/exec_emit" % PORT)
             logging.debug(_pid_name[os.getpid()] + "size of data_queue: %s" % q_input.qsize())
         else:
             logging.debug(_pid_name[os.getpid()] + "    buffer为空")
