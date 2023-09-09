@@ -44,7 +44,7 @@ import wave
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 PORT = 6006
 TTS_MODEL_DIR = "./sounda_voice_model_v1"
-SST_MODEL_DIR = "./whisper_models"
+SST_MODEL_DIR = "/root/autodl-fs/whisper"
 OUTPUT_DIR = "./output"
 VOICE_SAMPLE_DIR = "./voice_sample"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
