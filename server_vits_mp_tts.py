@@ -354,8 +354,8 @@ if __name__ == '__main__':
         _PID_NAME.update({p1.pid: "子进程%s" % idx})
         logging.info("    speech2text子进程启动 (%s)" % p1.pid)
 
-        p2 = mp.Process(target=process_queue_text2speech(),
-                        args=(Q_text2speech, Q_text2speech_rsp, SID_INFO, LOCK, _PID_NAME))
+        p2 = mp.Process(target=process_queue_text2speech,
+                        args=(Q_text2speech, Q_text2speech_rsp))
         p2.start()
         processes.append(p2)
         _PID_NAME.update({p2.pid: "子进程%s" % idx})
