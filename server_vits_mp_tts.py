@@ -155,7 +155,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                 info["text"] = text
 
 # 子线程用vits进行声音合成（文本转语音）
-def process_queue_text2speech():
+def process_queue_text2speech(q_input, q_output):
     logging.info("process_queue_text2speech start.")
     logging.info(">>> Construct&Init Model (device is '%s')" % DEVICE)
     M_tts = Text2Speech_vits(model_dir="/root/autodl-tmp/VITS_MODELS/OUTPUT_MODEL_xr_cxm_silang/G_latest.pth",
@@ -166,7 +166,7 @@ def process_queue_text2speech():
 
     while True:
         # 从队列中获取数据
-        data, t_str, sid = Q_text2speech.get()
+        data, t_str, sid = q_input.get()
         ts_data = int(datetime.strptime(t_str, "%Y-%m-%d %H:%M:%S").timestamp())
         if data is None:
             logging.info("data is None, break now. %s" % t_str)
@@ -185,7 +185,7 @@ def process_queue_text2speech():
                    "status": "0",
                    "msg": "success."}
             rsp = json.dumps(rsp)
-            Q_text2speech_rsp.put(rsp, sid)
+            q_output.put(rsp, sid)
             os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
         else:
             logging.error("not found speaker: '%s'" % data["speaker"])
@@ -194,7 +194,7 @@ def process_queue_text2speech():
                    "status": "1",
                    "msg": "fail. not found speaker '%s'" % data['speaker']}
             rsp = json.dumps(rsp)
-            Q_text2speech_rsp.put(rsp, sid)
+            q_output.put(rsp, sid)
             os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
 
 # Flask Service init
@@ -349,14 +349,17 @@ if __name__ == '__main__':
     for idx in range(4):
         p1 = mp.Process(target=process_queue_speech2text,
                         args=(Q_speech2text, Q_speech2text_rsp, SID_INFO, LOCK, _PID_NAME))
-        p2 = mp.Process(target=process_queue_text2speech(), 
-                        args=(Q_text2speech, Q_text2speech_rsp, SID_INFO, LOCK, _PID_NAME))
         p1.start()
         processes.append(p1)
         _PID_NAME.update({p1.pid: "子进程%s" % idx})
+        logging.info("    speech2text子进程启动 (%s)" % p1.pid)
+
+        p2 = mp.Process(target=process_queue_text2speech(),
+                        args=(Q_text2speech, Q_text2speech_rsp, SID_INFO, LOCK, _PID_NAME))
         p2.start()
         processes.append(p2)
         _PID_NAME.update({p2.pid: "子进程%s" % idx})
+        logging.info("    text2speech子进程启动 (%s)" % p2.pid)
         
     logging.info(">>> MultiProcess ready. all pid as follow:")
     logging.info(_PID_NAME)
