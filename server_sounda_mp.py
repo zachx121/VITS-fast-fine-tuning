@@ -117,7 +117,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                     # 在锁外面发送消息x
                     # 在锁内发消息吧
                     if eos_tag:
-                        logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s'" % info["text"])
+                        logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s...'" % text[:20])
                         rsp = json.dumps({"text": text, "mid": "0"})
                         # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
                         q_output.put((rsp, sid))
@@ -191,7 +191,7 @@ def process_queue_text2speech():
                    "status": "0",
                    "msg": "success."}
             rsp = json.dumps(rsp)
-            Q_text2speech.task_done()
+            # Q_text2speech.task_done()
             logging.debug("  Process of sid-%s-%s finished.(elapsed %s)" % (sid, t_str, time.time() - t_begin))
             socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
             logging.debug("size of data_queue: %s" % Q_text2speech.qsize())
@@ -202,7 +202,7 @@ def process_queue_text2speech():
                    "status": "1",
                    "msg": "fail. not found speaker '%s'" % data['speaker']}
             rsp = json.dumps(rsp)
-            Q_text2speech.task_done()
+            # Q_text2speech.task_done()
             socketio.emit("text2speech_rsp", rsp, to=sid, namespace=NAME_SPACE)
 
 # Flask Service init
@@ -240,9 +240,6 @@ def create_app():
                 wf_sid.setsampwidth(SAMPLE_WIDTH)
                 wf_sid.setframerate(SAMPLE_RATE)
                 wf_sid.writeframes(SID_INFO[sid]["buffer"])
-
-
-
         return "message send!\n"
 
     @app.route("/exec_emit")
