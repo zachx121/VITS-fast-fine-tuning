@@ -185,7 +185,7 @@ def process_queue_text2speech(q_input, q_output):
                    "status": "0",
                    "msg": "success."}
             rsp = json.dumps(rsp)
-            q_output.put(rsp, sid)
+            q_output.put((rsp, sid))
             os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
         else:
             logging.error("not found speaker: '%s'" % data["speaker"])
