@@ -152,14 +152,6 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                 info = sid_info[sid]
                 info["text"] = text
 
-
-def emit_queue_speech2text(q_output, socketio:SocketIO):
-    logging.info("发送转录信息的子线程已启动")
-    while True:
-        rsp, sid = q_output.get()
-        logging.debug("子线程拿到数据，发送回客户端 '%s'" % rsp)
-        socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
-
 # 子线程用vits进行声音合成（文本转语音）
 def process_queue_text2speech():
     logging.info("process_queue_text2speech start.")
