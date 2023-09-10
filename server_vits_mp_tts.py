@@ -2,6 +2,8 @@ import logging
 import pickle
 import queue
 import multiprocessing as mp
+import numpy as np
+
 #mp.set_start_method("fork")
 #mp.set_start_method("forkserver")
 logging.basicConfig(format='[%(asctime)s-%(process)d-%(levelname)s]: %(message)s',
@@ -180,7 +182,10 @@ def process_queue_text2speech(q_input, q_output):
                                    language="auto",  # 用Mix的话就相当于直接读字母发音了
                                    text_cleaners=M_tts.hparams['data']['text_cleaners'],
                                    speed=1)
-            rsp = {"audio_buffer": base64.b64encode(wav.tobytes()).decode(),
+            # 默认得到的是np.float32，32位深的结果，这里改成16位深
+            wav_scaled = np.clip(wav, -1.0, 1.0)
+            wav_16bit = (wav_scaled * 32767).astype(np.int16)
+            rsp = {"audio_buffer": base64.b64encode(wav_16bit.tobytes()).decode(),
                    "sr": str(sr),
                    "status": "0",
                    "msg": "success."}
