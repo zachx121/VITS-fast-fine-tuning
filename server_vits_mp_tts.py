@@ -174,7 +174,7 @@ def process_queue_text2speech(q_input, q_output):
         t_begin = time.time()
         logging.debug("  Process of sid-%s-%s start." % (sid, t_str))
 
-        if os.path.exists(data["speaker"] in M_tts.hparams['speakers'].keys()):
+        if data["speaker"] in M_tts.hparams['speakers'].keys():
             sr, wav = M_tts.tts_fn(text=data["text"],
                                    speaker=data["speaker"],
                                    language="auto",  # 用Mix的话就相当于直接读字母发音了
@@ -265,7 +265,7 @@ def create_app():
         # ts = int(time.time())
         ts = int(data['ts'])
         t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-        logging.debug(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
+        logging.debug(f"{NAME_SPACE}/speech2text received an input.(%s %s)" % (ts, t_str))
         if DEBUG:
             AUDIO_RECORD.update({sid: AUDIO_RECORD.get(sid, b"") + data["audio"]})
 
@@ -292,7 +292,7 @@ def create_app():
         data = json.loads(data)
         ts = int(time.time())
         t_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-        logging.info(f"{NAME_SPACE}_audio received an input.(%s %s)" % (ts, t_str))
+        logging.info(f"{NAME_SPACE}/text2speech received an input.(%s %s)" % (ts, t_str))
 
         # 将数据添加到队列中
         Q_text2speech.put((data, t_str, request.sid))
