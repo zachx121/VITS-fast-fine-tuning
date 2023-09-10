@@ -218,13 +218,13 @@ def send_text2speech_sounda():
             sr = int(sr)
             audio_buffer = base64.b64decode(audio_buffer)
             print("receive buffer: len=%s" % len(audio_buffer))
-            utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()))
-            t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
-            t.start()
-            t.join()
+            utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()), dtype=np.int16)
+            # t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
+            # t.start()
+            # t.join()
 
-    host = "http://127.0.0.1:8080"
-    # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
+    # host = "http://127.0.0.1:8080"
+    host = "http://region-45.autodl.pro:29369"
     sio.connect(host + '/MY_SPACE')
 
     # 上传需要克隆的声音素材
@@ -253,17 +253,13 @@ def send_text2speech_sounda():
         sio.emit('upload_speaker', json.dumps(upd_speaker), namespace='/MY_SPACE')
         time.sleep(10)
 
-    #upload()
+    for speaker in ["四郎配音", "daniel", "xr", "zhongli"]:
+        sio.emit('text2speech',
+                 json.dumps({'text': "致以诚挚的祝愿和美好的祝福", 'speaker': speaker, "language": "zh"}),
+                 namespace="/MY_SPACE")
+        time.sleep(1)
 
-    print("send..")
-    sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker':"cxm", "language":"zh"}), namespace="/MY_SPACE")
-    time.sleep(5)
-    print("send..")
-    sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker':"female_p1", "language":"zh"}), namespace="/MY_SPACE")
-    time.sleep(5)
-    print("send..")
-    sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker':"male_p1", "language":"zh"}), namespace="/MY_SPACE")
-    time.sleep(5)
+    time.sleep(30)
     sys.exit(0)
 
 
