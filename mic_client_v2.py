@@ -67,8 +67,9 @@ def text2speech_rsp(message):
     t.start()
     t.join()
 
-host = "http://127.0.0.1:8080"
+# host = "http://127.0.0.1:6006"
 # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
+host = "http://region-45.autodl.pro:29369"
 sio.connect(host+'/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')

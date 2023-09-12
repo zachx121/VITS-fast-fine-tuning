@@ -25,8 +25,8 @@ def play_audio_buffer(audio_buffer, sr, channels=1):
 
 play_audio = play_audio_buffer
 
-def save_audio_buffer(audio_buffer, sr, fp):
-    scipy.io.wavfile.write(fp, sr, np.frombuffer(audio_buffer, dtype=np.float32))
+def save_audio_buffer(audio_buffer, sr, fp, dtype=np.float32):
+    scipy.io.wavfile.write(fp, sr, np.frombuffer(audio_buffer, dtype=dtype))
 
 def save_audio(audio, sr, fp):
     scipy.io.wavfile.write(fp, sr, audio)
