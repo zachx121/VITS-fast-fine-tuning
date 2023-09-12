@@ -46,7 +46,7 @@ import wave
 # TTS_MODEL_DIR = sys.argv[2] if len(sys.argv) >= 3 else "./sounda_voice_model_v1"
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 PORT = 6006
-TTS_MODEL_DIR = "./sounda_voice_model_v1"
+TTS_MODEL_DIR = "/root/autodl-fs/VITS_DATA/OUTPUT_MODEL_四郎_daniel_bruce"
 SST_MODEL_DIR = "/root/autodl-fs/whisper"
 OUTPUT_DIR = "./output"
 VOICE_SAMPLE_DIR = "./voice_sample"
@@ -160,8 +160,8 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
 def process_queue_text2speech(q_input, q_output):
     logging.info("process_queue_text2speech start.")
     logging.info(">>> Construct&Init Model (device is '%s')" % DEVICE)
-    M_tts = Text2Speech_vits(model_dir="/root/autodl-tmp/VITS_MODELS/OUTPUT_MODEL_xr_cxm_silang/G_latest.pth",
-                             config_fp="/root/autodl-tmp/VITS_MODELS/OUTPUT_MODEL_xr_cxm_silang/config.json")
+    M_tts = Text2Speech_vits(model_dir=os.path.join(TTS_MODEL_DIR,"G_latest.pth"),
+                             config_fp=os.path.join(TTS_MODEL_DIR,"config.json"))
     M_tts.init()
     logging.info(">>> Construct&Init Model done.")
     logging.info(">>> Speakers: %s" % ",".join(M_tts.hparams['speakers'].keys()))
