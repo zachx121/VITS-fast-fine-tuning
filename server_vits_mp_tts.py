@@ -122,7 +122,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                     # 在锁内发消息吧
                     if eos_tag:
                         logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s...'" % text[:20])
-                        rsp = json.dumps({"text": text, "mid": "0"})
+                        rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
                         # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
                         q_output.put((rsp, sid))
                         os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
@@ -140,7 +140,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                                            language=lang,
                                            fp16=False)
             logging.debug(_pid_name[os.getpid()] + "    transcribed: '%s'" % text)
-            rsp = json.dumps({"text": text, "mid": "1"})
+            rsp = json.dumps({"text": text, "mid": "1", "trace_id": data.get("trace_id","")})
 
             # queue.task_done()
             logging.debug(_pid_name[os.getpid()] + "    Process of sid-%s-%s finished.(elapsed %.4f)" % (sid, t_str, time.time() - t_begin))
@@ -185,7 +185,8 @@ def process_queue_text2speech(q_input, q_output):
             # 默认得到的是np.float32，32位深的结果，这里改成16位深
             wav_scaled = np.clip(wav, -1.0, 1.0)
             wav_16bit = (wav_scaled * 32767).astype(np.int16)
-            rsp = {"audio_buffer": base64.b64encode(wav_16bit.tobytes()).decode(),
+            rsp = {"trace_id": data.get("trace_id",""),
+                   "audio_buffer": base64.b64encode(wav_16bit.tobytes()).decode(),
                    "sr": str(sr),
                    "status": "0",
                    "msg": "success."}
@@ -194,7 +195,8 @@ def process_queue_text2speech(q_input, q_output):
             os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
         else:
             logging.error("not found speaker: '%s'" % data["speaker"])
-            rsp = {"audio_buffer": "",
+            rsp = {"trace_id": data.get("trace_id",""),
+                   "audio_buffer": "",
                    "sr": "",
                    "status": "1",
                    "msg": "fail. not found speaker '%s'" % data['speaker']}
@@ -302,10 +304,6 @@ def create_app():
         # 将数据添加到队列中
         Q_text2speech.put((data, t_str, request.sid))
 
-        #
-        # sr, audio = M_tts.tts_fn(text, speaker="audio", language="简体中文", speed=1.0)
-        # rsp = {"text": text, "audio_buffer": audio.tobytes(), "sr": sr}
-        # socketio.emit("audio_rsp", rsp, to=request.sid, namespace=NAME_SPACE)
 
     @app.route("/exec_emit_text2speech")
     def exec_emit_text2speech():
