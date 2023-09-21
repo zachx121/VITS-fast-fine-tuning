@@ -46,8 +46,10 @@ import wave
 # TTS_MODEL_DIR = sys.argv[2] if len(sys.argv) >= 3 else "./sounda_voice_model_v1"
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 PORT = 6006
+PROCESS_NUM = 2
 TTS_MODEL_DIR = "/root/autodl-fs/VITS_DATA/OUTPUT_MODEL_四郎_daniel_bruce"
 SST_MODEL_DIR = "/root/autodl-fs/whisper"
+WHISPER_MODEL = "large-v2"  # large-v2, tiny, medium
 OUTPUT_DIR = "./output"
 VOICE_SAMPLE_DIR = "./voice_sample"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -76,7 +78,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
     # logging.info(_PID_NAME[os.getpid()]+"process_queue_speech2text start.")
     logging.info("process_queue_speech2text start.")  # 这个时候还没while阻塞，主进程还没执行到更新_PID_NAME字典拿不到NAME
     logging.debug(">>> Construct&Init Model (device is '%s')" % DEVICE)
-    model = Speech2Text(model_type="tiny", download_root=SST_MODEL_DIR, device=DEVICE)
+    model = Speech2Text(model_type=WHISPER_MODEL, download_root=SST_MODEL_DIR, device=DEVICE)
     model.init()
     logging.debug(">>> Construct&Init Model done.")
     logging.debug("process_queue_speech2text ready.")
@@ -125,7 +127,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                         rsp = json.dumps({"text": text, "mid": "0"})
                         # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
                         q_output.put((rsp, sid))
-                        os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
+                        _ = os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
 
                 sid_info.update({sid: info})
 
@@ -146,7 +148,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
             logging.debug(_pid_name[os.getpid()] + "    Process of sid-%s-%s finished.(elapsed %.4f)" % (sid, t_str, time.time() - t_begin))
             # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
             q_output.put((rsp, sid))
-            os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
+            _ = os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
             logging.debug(_pid_name[os.getpid()] + "size of data_queue: %s" % q_input.qsize())
         else:
             logging.debug(_pid_name[os.getpid()] + "    buffer为空")
@@ -191,7 +193,7 @@ def process_queue_text2speech(q_input, q_output):
                    "msg": "success."}
             rsp = json.dumps(rsp)
             q_output.put((rsp, sid))
-            os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
+            _ = os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
         else:
             logging.error("not found speaker: '%s'" % data["speaker"])
             rsp = {"audio_buffer": "",
@@ -199,8 +201,8 @@ def process_queue_text2speech(q_input, q_output):
                    "status": "1",
                    "msg": "fail. not found speaker '%s'" % data['speaker']}
             rsp = json.dumps(rsp)
-            q_output.put(rsp, sid)
-            os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
+            q_output.put((rsp, sid))
+            _ = os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
 
 # Flask Service init
 def create_app():
@@ -351,7 +353,7 @@ if __name__ == '__main__':
     _PID_NAME = manager.dict()
     _PID_NAME[os.getpid()] = "主进程"
     processes = []
-    for idx in range(4):
+    for idx in range(PROCESS_NUM):
         p1 = mp.Process(target=process_queue_speech2text,
                         args=(Q_speech2text, Q_speech2text_rsp, SID_INFO, LOCK, _PID_NAME))
         p1.start()
