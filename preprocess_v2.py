@@ -3,9 +3,11 @@ import argparse
 import json
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--add_auxiliary_data", type=bool, help="Whether to add extra data as fine-tuning helper")
+    parser.add_argument("--add_auxiliary_data", help="Whether to add extra data as fine-tuning helper")
     parser.add_argument("--languages", default="CJE")
     args = parser.parse_args()
+    print(">>> add_auxiliary_data %s" % args.add_auxiliary_data)
+    print(">>> languages %s" % args.languages)
     if args.languages == "CJE":
         langs = ["[ZH]", "[JA]", "[EN]"]
     elif args.languages == "CJ":
@@ -32,7 +34,7 @@ if __name__ == "__main__":
             speakers.append(speaker)
     assert (len(speakers) != 0), "No audio file found. Please check your uploaded file structure."
     # Source 3 (Optional): sampled audios as extra training helpers
-    if args.add_auxiliary_data:
+    if args.add_auxiliary_data=="1":
         with open("./sampled_audio4ft.txt", 'r', encoding='utf-8') as f:
             old_annos = f.readlines()
         # filter old_annos according to supported languages
