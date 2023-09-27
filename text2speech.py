@@ -60,7 +60,7 @@ class Text2Speech:
         return text_norm
 
     @staticmethod
-    def __mark(text):
+    def add_lang_mark(text):
         # 将连续的英文字符用[EN]包围 | 必须先执行英文标记
         en_pattern = re.compile(r'[a-zA-Z\s]+')
         text = re.sub(en_pattern, r'[EN]\g<0>[EN]', text)
@@ -81,7 +81,7 @@ class Text2Speech:
         text_cleaners = text_cleaners if text_cleaners is not None else self.hparams.data.text_cleaners
         if language is not None:
             if language == "auto":
-                text = self.__mark(text)
+                text = self.add_lang_mark(text)
             else:
                 text = self.language_marks[language] + text + self.language_marks[language]
         logging.debug(f"marked text is '{text}'")
