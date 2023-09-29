@@ -330,7 +330,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         exit()
 
   if rank == 0:
-    logger.info('====> Epoch: {}'.format(epoch))
+    logger.info('====> Epoch: {} Step: {}'.format(epoch, global_step))
 
 
 def evaluate(hps, generator, eval_loader, writer_eval):
