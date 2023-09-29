@@ -307,21 +307,22 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                   print(f"remove {old_d}")
                   os.remove(old_d)
 
-        M_tts = Text2Speech(model_dir=os.path.join(hps.model_dir, "G_latest.pth"),
-                            config_fp=os.path.join(hps.model_dir, "config.json")).init()
-        wav_list = []
-        sr=0
-        for speaker in list(M_tts.hparams['speakers'].keys())[:10]:
-            sr, wav = M_tts.tts_fn(text="说话人%s, 致以诚挚的问候和美好的祝愿" % speaker,
-                                     speaker=speaker,
-                                     language="auto",  # 用Mix的话就相当于直接读字母发音了
-                                     speed=1)
-            wav_list.append(wav)
-            sr=sr
-        wav = np.hstack(wav_list)
-        utils_audio.save_audio(wav, sr, fp=os.path.join(hps.model_dir, "mock_%s.wav" % global_step))
-        del M_tts
-        del sr, wav
+        if global_step % (hps.train.eval_interval*5) == 0:
+            M_tts = Text2Speech(model_dir=os.path.join(hps.model_dir, "G_latest.pth"),
+                                config_fp=os.path.join(hps.model_dir, "config.json")).init()
+            wav_list = []
+            sr=0
+            for speaker in list(M_tts.hparams['speakers'].keys())[:5]:
+                sr, wav = M_tts.tts_fn(text="说话人%s:   一条测试音频" % speaker,
+                                         speaker=speaker,
+                                         language="auto",  # 用Mix的话就相当于直接读字母发音了
+                                         speed=1)
+                wav_list.append(wav)
+                sr=sr
+            wav = np.hstack(wav_list)
+            utils_audio.save_audio(wav, sr, fp=os.path.join(hps.model_dir, "mock_%s.wav" % global_step))
+            del M_tts
+            del sr, wav
 
     global_step += 1
     if epoch > hps.max_epochs:
