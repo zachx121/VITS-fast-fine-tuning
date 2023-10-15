@@ -45,8 +45,9 @@ def speech2text_rsp(message):
     #     t.join()
 
 
-host = "http://127.0.0.1:8080"
+# host = "http://127.0.0.1:8080"
 # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
+host = "https://u212392-8d2a-c21cde27.beijinga.seetacloud.com/"
 sio.connect(host + NAME_SPACE)
 time.sleep(5)
 
@@ -58,11 +59,12 @@ print(">>> USE FILE: %s" % audio_file)
 with wave.open(audio_file, 'rb') as wf:
     framerate = wf.getframerate()
     n_frames = wf.getnframes()
-
+    print("framerate: %s n_frames:%s" % (framerate, n_frames))
     # 计算500毫秒内的帧数
-    chunk_size = int(framerate * 0.5)  # 500 ms
+    chunk_size = int(framerate * 1)  # 500 ms
 
-    for _ in range(0, n_frames, chunk_size):
+    audio2write = b""
+    for _ in tqdm(range(0, n_frames, chunk_size)):
         #audio_data = wf.readframes(chunk_size)
         audio_data, sr = librosa.load(audio_file, sr=SAMPLE_RATE)
         audio_array = np.frombuffer(audio_data, dtype=np.int16)
@@ -74,8 +76,17 @@ with wave.open(audio_file, 'rb') as wf:
                       "language": "zh",
                       "ts": int(time.time())
                       }
-        audio_info = json.dumps(audio_info)
-        sio.emit('speech2text', audio_info, namespace=NAME_SPACE)
+        audio_info_json = json.dumps(audio_info)
+        sio.emit('speech2text', audio_info_json, namespace=NAME_SPACE)
+        # print(audio_info["audio"])
+        audio2write += b""+base64.b64decode(audio_info["audio"])
+
+    # 发送的所有音频片段存起来
+    wf_sid = wave.open("./tmp_send_audio.wav", "wb")
+    wf_sid.setnchannels(CHANNELS)
+    wf_sid.setsampwidth(SAMPLE_WIDTH)
+    wf_sid.setframerate(SAMPLE_RATE)
+    wf_sid.writeframes(audio2write)
 
     time.sleep(60*3)
     # 断开连接

@@ -120,16 +120,17 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                                                    fp16=False)
                     eos_tag = True
                     info["buffer"] = b""
-                    # 在锁外面发送消息x
-                    # 在锁内发消息吧
-                    if eos_tag:
-                        logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s...'" % text[:20])
-                        rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
-                        # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
-                        q_output.put((rsp, sid))
-                        _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_speech2text" % PORT)
 
-                sid_info.update({sid: info})
+        # 尝试在锁外发送消息（主进程有新的客户端连接时，需要拿锁去更新SID_INFO，如果此时子进程占着锁发送无超时的curl，等待主进程返回结果，那就形成死锁了）
+        if eos_tag:
+            logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s...'" % text[:20])
+            rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
+            # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
+            q_output.put((rsp, sid))
+            _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_speech2text" % PORT)
+
+        with lock:
+            sid_info.update({sid: info})
 
         logging.debug(_pid_name[os.getpid()] + "    with lock结束")
 
