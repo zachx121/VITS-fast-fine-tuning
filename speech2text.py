@@ -85,7 +85,13 @@ class Speech2Text:
                                        best_of=5,
                                        word_timestamps=False,
                                        **kwargs)
-        return result['text']
+        # print("\nsegments-details:")
+        # for seg in result['segments']:
+        #     print(">>> [avg_logprob]: %.6f [no_speech_prob]:%.6f" % (seg['avg_logprob'], seg['no_speech_prob']))
+        #     print(seg['text'])
+
+        return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= 0.1])
+        # return result['text']
 
     def transcribe_buffer(self, audio_buffer, sr_inp, channels_inp, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
@@ -98,7 +104,8 @@ class Speech2Text:
                                        word_timestamps=False,
                                        **kwargs)
         # logging.debug("transcribe_buffer>transcribe done.(%s...)" % str(result)[:15])
-        return result['text']
+        return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= 0.1])
+        # return result['text']
 
     @staticmethod
     def load_audio_raw(pcm_data: bytes,
@@ -164,17 +171,17 @@ if __name__ == '__main__':
         print("all language: %s" % whisper.tokenizer.LANGUAGES.keys())
     # process file.
     if True:
-        FILE_FP = sys.argv[1] if len(sys.argv) >= 2 else "./output_server_new.wav"
+        FILE_FP = sys.argv[1] if len(sys.argv) >= 2 else "./tmp_send_audio.wav"
         MODEL_TYPE = sys.argv[2] if len(sys.argv) >= 3 else "tiny"
         logging.info(">>> use FILE_FP as '%s'" % FILE_FP)
         logging.info(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
         M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models").init()
         text = M_stt.transcribe(FILE_FP, fp16=False)
         logging.info(">>> transcribe_file:\n%s" % text)
-        text = M_stt.transcribe(FILE_FP, fp16=False, language="en")
-        logging.info(">>> transcribe_file(lang=en):\n%s" % text)
-        text = M_stt.transcribe(FILE_FP, fp16=False, language=None)
-        logging.info(">>> transcribe_file(lang=en):\n%s" % text)
+        text = M_stt.transcribe("prehot_speech2text.wav", fp16=False, language="zh")
+        logging.info(">>> transcribe_file(lang=zh):\n%s" % text)
+        # text = M_stt.transcribe(FILE_FP, fp16=False, language=None)
+        # logging.info(">>> transcribe_file(lang=en):\n%s" % text)
 
     if False:
         MODEL_TYPE = "tiny"
