@@ -127,7 +127,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                         rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
                         # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
                         q_output.put((rsp, sid))
-                        _ = os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
+                        _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_speech2text" % PORT)
 
                 sid_info.update({sid: info})
 
@@ -148,7 +148,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
             logging.debug(_pid_name[os.getpid()] + "    Process of sid-%s-%s finished.(elapsed %.4f)" % (sid, t_str, time.time() - t_begin))
             # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
             q_output.put((rsp, sid))
-            _ = os.system("curl 127.0.0.1:%s/exec_emit_speech2text" % PORT)
+            _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_speech2text" % PORT)
             logging.debug(_pid_name[os.getpid()] + "size of data_queue: %s" % q_input.qsize())
         else:
             logging.debug(_pid_name[os.getpid()] + "    buffer为空")
@@ -194,7 +194,7 @@ def process_queue_text2speech(q_input, q_output):
                    "msg": "success."}
             rsp = json.dumps(rsp)
             q_output.put((rsp, sid))
-            _ = os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
+            _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_text2speech" % PORT)
         else:
             logging.error("not found speaker: '%s'" % data["speaker"])
             rsp = {"trace_id": data.get("trace_id",""),
@@ -204,7 +204,7 @@ def process_queue_text2speech(q_input, q_output):
                    "msg": "fail. not found speaker '%s'" % data['speaker']}
             rsp = json.dumps(rsp)
             q_output.put((rsp, sid))
-            _ = os.system("curl 127.0.0.1:%s/exec_emit_text2speech" % PORT)
+            _ = os.system("curl -m 5 127.0.0.1:%s/exec_emit_text2speech" % PORT)
 
 # Flask Service init
 def create_app():
