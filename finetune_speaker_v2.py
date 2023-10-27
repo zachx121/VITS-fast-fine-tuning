@@ -57,6 +57,8 @@ def main():
   os.environ['MASTER_PORT'] = '8000'
 
   hps = utils.get_hparams()
+  print("hps.train.batch_size: %s" % hps.train.batch_size)
+  print("hps.max_epochs: %s" % hps.max_epochs)  
   mp.spawn(run, nprocs=n_gpus, args=(n_gpus, hps,))
 
 
@@ -312,8 +314,8 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                                 config_fp=os.path.join(hps.model_dir, "config.json")).init()
             wav_list = []
             sr=0
-            for speaker in list(M_tts.hparams['speakers'].keys())[:5]:
-                sr, wav = M_tts.tts_fn(text="说话人%s:   一条测试音频" % speaker,
+            for speaker in list(M_tts.hparams['speakers'].keys())[:3]:
+                sr, wav = M_tts.tts_fn(text="说话人%s 中文测试. now speak english." % speaker,
                                          speaker=speaker,
                                          language="auto",  # 用Mix的话就相当于直接读字母发音了
                                          speed=1)

@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--languages", default="CJE")
     parser.add_argument("--whisper_size", default="medium")
+    parser.add_argument("--whisper_model_dir", default=None)
     args = parser.parse_args()
     if args.languages == "CJE":
         lang2token = {
@@ -32,7 +33,8 @@ if __name__ == "__main__":
     with open("./configs/finetune_speaker.json", 'r', encoding='utf-8') as f:
         hps = json.load(f)
     target_sr = hps['data']['sampling_rate']
-    model = whisper.load_model(args.whisper_size)
+    print("will use whisper model in '%s'" % args.whisper_model_dir)
+    model = whisper.load_model(args.whisper_size, download_root=args.whisper_model_dir)
     speaker_annos = []
     for file in filelist:
         print(f"transcribing {parent_dir + file}...\n")
