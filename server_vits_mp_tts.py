@@ -47,7 +47,7 @@ import wave
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
 PORT = 6006
 PROCESS_NUM = 2
-TTS_MODEL_DIR = "/root/autodl-fs/VITS_DATA/OUTPUT_MODEL_四郎_daniel_bruce"
+TTS_MODEL_DIR = "/root/autodl-fs/vits_models/OUTPUT_MODEL_四郎_daniel_bruce"
 SST_MODEL_DIR = "/root/autodl-fs/whisper"
 WHISPER_MODEL = "large-v2"  # large-v2, tiny, medium
 OUTPUT_DIR = "./output"
