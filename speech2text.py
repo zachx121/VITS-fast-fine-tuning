@@ -173,11 +173,12 @@ if __name__ == '__main__':
         print("all language: %s" % whisper.tokenizer.LANGUAGES.keys())
     # process file.
     if True:
-        FILE_FP = sys.argv[1] if len(sys.argv) >= 2 else "./tmp_send_audio.wav"
+        FILE_FP = sys.argv[1] if len(sys.argv) >= 2 else "./prehot_speech2text.wav"
         MODEL_TYPE = sys.argv[2] if len(sys.argv) >= 3 else "tiny"
+        MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "/root/autodl-fs/whisper"
         logging.info(">>> use FILE_FP as '%s'" % FILE_FP)
         logging.info(">>> use MODEL_TYPE as '%s'" % MODEL_TYPE)
-        M_stt = Speech2Text(model_type=MODEL_TYPE, download_root="./whisper_models").init()
+        M_stt = Speech2Text(model_type=MODEL_TYPE, download_root=MODEL_DIR).init()
         text = M_stt.transcribe(FILE_FP, fp16=False)
         logging.info(">>> transcribe_file:\n%s" % text)
         text = M_stt.transcribe("prehot_speech2text.wav", fp16=False, language="zh")

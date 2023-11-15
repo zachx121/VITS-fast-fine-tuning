@@ -39,6 +39,9 @@ sys.path.append("./")
 from datetime import datetime
 import wave
 
+# [Model prepared]
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+logging.info(">>> [DEVICE]: %s" % DEVICE)
 
 # [Params]
 # PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 8080
@@ -58,9 +61,6 @@ logging.info(">>> [PORT]: %s" % PORT)
 logging.info(">>> [TTS_MODEL_DIR]: %s" % TTS_MODEL_DIR)
 logging.info(">>> [SST_MODEL_DIR]: %s" % SST_MODEL_DIR)
 
-
-# [Model prepared]
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 NAME_SPACE = '/MY_SPACE'
 SAMPLE_RATE = 16000  # 采样频率
