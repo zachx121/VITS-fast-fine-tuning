@@ -77,7 +77,8 @@ class Speech2Text:
         #logging.debug("executing model.to(self.device)")
         return model.to(self.device)
 
-    def transcribe(self, audio_file, prob_holder=1e-3, return_details=False, **kwargs):
+    # prob_holder: 0.5表示只有当no_speech的概率低于0.5的时候才返回转录的文字，否则给空串
+    def transcribe(self, audio_file, prob_holder=0.5, return_details=False, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
         result = self.model.transcribe(audio_file,
                                        task="transcribe",
@@ -90,7 +91,7 @@ class Speech2Text:
         #     print(">>> [avg_logprob]: %.6f [no_speech_prob]:%.6f" % (seg['avg_logprob'], seg['no_speech_prob']))
         #     print(seg['text'])
         if return_details:
-            return "".join([seg["text"]+"_"+seg['no_speech_prob'] for seg in result['segments']])
+            return "".join(["%s_%.4f " % (seg["text"], seg['no_speech_prob']) for seg in result['segments']])
         else:
             return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= prob_holder])
         # return result['text']
