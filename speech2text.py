@@ -77,7 +77,7 @@ class Speech2Text:
         #logging.debug("executing model.to(self.device)")
         return model.to(self.device)
 
-    def transcribe(self, audio_file, **kwargs):
+    def transcribe(self, audio_file, prob_holder=1e-3, return_details=False, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
         result = self.model.transcribe(audio_file,
                                        task="transcribe",
@@ -89,8 +89,10 @@ class Speech2Text:
         # for seg in result['segments']:
         #     print(">>> [avg_logprob]: %.6f [no_speech_prob]:%.6f" % (seg['avg_logprob'], seg['no_speech_prob']))
         #     print(seg['text'])
-
-        return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= 0.1])
+        if return_details:
+            return "".join([seg["text"]+"_"+seg['no_speech_prob'] for seg in result['segments']])
+        else:
+            return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= prob_holder])
         # return result['text']
 
     def transcribe_buffer(self, audio_buffer, sr_inp, channels_inp, **kwargs):
