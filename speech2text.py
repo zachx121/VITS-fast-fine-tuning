@@ -7,6 +7,7 @@ from scipy.io.wavfile import write as write_wav
 import os
 import torch
 import logging
+from typing import Union
 
 logging.basicConfig(format='[%(asctime)s-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
@@ -78,25 +79,33 @@ class Speech2Text:
         return model.to(self.device)
 
     # prob_holder: 0.5表示只有当no_speech的概率低于0.5的时候才返回转录的文字，否则给空串
-    def transcribe(self, audio_file, prob_holder=0.5, return_details=False, **kwargs):
+    def transcribe(self, audio_inp: Union[str, np.ndarray, torch.Tensor],
+                   prob_holder=0.9,
+                   return_details=False,
+                   **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
-        result = self.model.transcribe(audio_file,
+        result = self.model.transcribe(audio_inp,
                                        task="transcribe",
                                        beam_size=5,
-                                       best_of=5,
+                                       best_of=2,
                                        word_timestamps=False,
                                        **kwargs)
-        # print("\nsegments-details:")
-        # for seg in result['segments']:
-        #     print(">>> [avg_logprob]: %.6f [no_speech_prob]:%.6f" % (seg['avg_logprob'], seg['no_speech_prob']))
-        #     print(seg['text'])
+
         if return_details:
             return "".join(["%s_%.4f " % (seg["text"], seg['no_speech_prob']) for seg in result['segments']])
+        elif prob_holder == 1.0:
+            res = "".join([seg["text"] for seg in result['segments']])
+            return res
         else:
-            return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= prob_holder])
-        # return result['text']
+            res = "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= prob_holder])
+            res = "[EMPTY]" if res == "" else res
+            return res
 
-    def transcribe_buffer(self, audio_buffer, sr_inp, channels_inp, **kwargs):
+    def transcribe_buffer(self, audio_buffer, 
+                          sr_inp, 
+                          channels_inp,
+                          return_details=False, 
+                          prob_holder=0.9, **kwargs):
         assert self.model is not None, "self.model is None, should call '.init()' at first"
         audio = self.load_audio_raw(audio_buffer, sr_inp=sr_inp, channels=channels_inp)
         # logging.debug("transcribe_buffer>load_audio_raw done.(%s)" % audio.shape)
@@ -106,9 +115,17 @@ class Speech2Text:
                                        best_of=5,
                                        word_timestamps=False,
                                        **kwargs)
-        # logging.debug("transcribe_buffer>transcribe done.(%s...)" % str(result)[:15])
-        return "".join([seg["text"] for seg in result['segments'] if float(seg['no_speech_prob']) <= 0.1])
-        # return result['text']
+        if return_details:
+            return "".join(["%s_%.4f " % (seg["text"], seg['no_speech_prob']) for seg in result['segments']])
+        elif prob_holder == 1.0:
+            # 默认是不做任何分数控制
+            res = "".join([seg["text"] for seg in result['segments']])
+            return res
+        else:
+            res = "".join([seg["text"] for seg in result['segments'] 
+                           if float(seg['no_speech_prob']) <= kwargs.get("prob_holder", 1.0)])
+            res = "[EMPTY]" if res == "" else res
+            return res
 
     @staticmethod
     def load_audio_raw(pcm_data: bytes,

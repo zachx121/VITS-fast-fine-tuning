@@ -48,6 +48,7 @@ logging.info(">>> [DEVICE]: %s" % DEVICE)
 # TTS_MODEL = sys.argv[2] if len(sys.argv) >= 3 else "./vits_models/G_latest_cxm_1st.pth"
 # TTS_MODEL_DIR = sys.argv[2] if len(sys.argv) >= 3 else "./sounda_voice_model_v1"
 # SST_MODEL_DIR = sys.argv[3] if len(sys.argv) >= 4 else "./whisper_models"
+DEBUG = False
 PORT = 6006
 PROCESS_NUM = 2
 TTS_MODEL_DIR = "/root/autodl-fs/vits_models/OUTPUT_MODEL_四郎_daniel_bruce"
@@ -70,8 +71,9 @@ CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
 BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
 RMS_LAST_TIME = 0.5  # 取音频的最后多久计算RMS
 RMS_HOLDER = 777  # 最后一段音频小于多少音量时，视为结束，清空buffer
-DEBUG = True
+NS_PROB_HOLDER = 0.8  # 超过多少的概率，认为是非说话声音，返回空串
 AUDIO_RECORD = {}
+
 
 # 子进程用whisper处理语音转文本，并将结果写入rsp队列
 def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
@@ -117,13 +119,14 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                                                    sr_inp=SAMPLE_RATE,
                                                    channels_inp=CHANNELS,
                                                    language=lang,
-                                                   fp16=False)
+                                                   fp16=False,
+                                                   return_details=DEBUG,prob_holder=NS_PROB_HOLDER)
                     eos_tag = True
                     info["buffer"] = b""
 
         # 尝试在锁外发送消息（主进程有新的客户端连接时，需要拿锁去更新SID_INFO，如果此时子进程占着锁发送无超时的curl，等待主进程返回结果，那就形成死锁了）
         if eos_tag:
-            logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s...'" % text[:20])
+            logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本 '%s'" % text[:20])
             rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
             # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
             q_output.put((rsp, sid))
@@ -141,7 +144,8 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                                            sr_inp=SAMPLE_RATE,
                                            channels_inp=CHANNELS,
                                            language=lang,
-                                           fp16=False)
+                                           fp16=False,
+                                           return_details=DEBUG,prob_holder=NS_PROB_HOLDER)
             logging.debug(_pid_name[os.getpid()] + "    transcribed: '%s'" % text)
             rsp = json.dumps({"text": text, "mid": "1", "trace_id": data.get("trace_id","")})
 
