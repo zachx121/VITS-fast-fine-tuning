@@ -315,7 +315,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             wav_list = []
             sr=0
             for speaker in list(M_tts.hparams['speakers'].keys())[:3]:
-                sr, wav = M_tts.tts_fn(text="说话人%s 中文测试. now speak english." % speaker,
+                sr, wav = M_tts.tts_fn(text="说话人%s. now speak english." % speaker,
                                          speaker=speaker,
                                          language="auto",  # 用Mix的话就相当于直接读字母发音了
                                          speed=1)
