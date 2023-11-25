@@ -48,8 +48,8 @@ if __name__ == "__main__":
             print(f"{lang} not supported, ignoring...\n")
             continue
         # segment audio based on segment results
-        character_name = file.rstrip(".wav").split("_")[0]
-        code = file.rstrip(".wav").split("_")[1]
+        character_name = "_".join(file.rstrip(".wav").split("_")[:-1])
+        code = file.rstrip(".wav").split("_")[-1]
         if not os.path.exists("./segmented_character_voice/" + character_name):
             os.mkdir("./segmented_character_voice/" + character_name)
         wav, sr = torchaudio.load(parent_dir + file, frame_offset=0, num_frames=-1, normalize=True,
