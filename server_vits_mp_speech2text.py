@@ -118,8 +118,9 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
                     eos_tag = True
                     info["buffer"] = b""
                 # 持续超过90s的buffer也直接转录后清空
-                if lb//int(RMS_LAST_TIME * BYTES_PER_SEC) > 90:
-                    logging.debug(_pid_name[os.getpid()] + "    总长度'%s'超过90s, 清空buffer" % lb//int(RMS_LAST_TIME * BYTES_PER_SEC))
+                elapse = lb//int(RMS_LAST_TIME * BYTES_PER_SEC)
+                if elapse > 90:
+                    logging.debug(_pid_name[os.getpid()] + "    总长度'%s'超过90s, 清空buffer" % elapse)
                     logging.debug(_pid_name[os.getpid()] + "    清空前再转录一次文本")
                     text = model.transcribe_buffer(info["buffer"],
                                                    sr_inp=SAMPLE_RATE,

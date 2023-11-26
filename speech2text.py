@@ -54,7 +54,7 @@ class Speech2Text:
         }
         alignment_heads = _ALIGNMENT_HEADS[self.model_type]
         checkpoint_file = os.path.join(self.download_root, self.model_type+".pt")
-        # logging.debug("loading from ckpt_file: %s" % checkpoint_file)
+        logging.debug("loading from ckpt_file: %s" % checkpoint_file)
         open(checkpoint_file, "rb")
         with open(checkpoint_file, "rb") as fp:
             checkpoint = torch.load(fp, map_location=self.device)
