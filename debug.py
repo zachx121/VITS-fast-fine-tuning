@@ -264,7 +264,82 @@ def send_text2speech_sounda():
     time.sleep(30)
     sys.exit(0)
 
+def send_speech2text():
+    import os
+    import wave
+    import socketio
+    import logging
+    import librosa
+    from tqdm.auto import tqdm
+    sio = socketio.Client()
+
+    @sio.event(namespace='/MY_SPACE')
+    def connect():
+        logging.info('connection established')
+
+    @sio.event(namespace='/MY_SPACE')
+    def disconnect():
+        logging.info('disconnected from server')
+
+    @sio.event(namespace='/MY_SPACE')
+    def get_server_info(message):
+        logging.info("Server Says: '%s'\n" % message)
+        if message == "All init done.":
+            logging.info(">>> 服务端已就绪，可以开始说话...")
+
+    @sio.on("speech2text_rsp", namespace="/MY_SPACE")
+    def speech2text_rsp(message):
+        messaged = json.loads(message)
+        print("messaged is: '%s'" % messaged)
+
+    host = "http://region-45.autodl.pro:32280"
+    sio.connect(host + '/MY_SPACE')
+
+    fp = os.path.abspath("./prehot_speech2text.wav")
+    with wave.open(fp, 'rb') as wf:
+        print("声道数: %s" % wf.getnchannels())
+        print("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
+        print("采样总数(样本总数、数组长度): %s" % wf.getnframes())
+        print("采样宽度(样本宽度): %s" % wf.getsampwidth())  # 标准的16位PCM音频中，每个样本占用2个字节
+        print("音频总时长: %s" % (wf.getnframes()/wf.getframerate()))
+
+        standard_dtypes = {2:np.int16, 4:np.int32}
+        dtype = standard_dtypes[wf.getsampwidth()]
+        all_time,each_time = 0,1.0
+        while all_time < wf.getnframes()/wf.getframerate():
+            chunk_size = int(wf.getframerate() * each_time)  # 采样率*采样时间拿到样本数（取整）
+            buffer = wf.readframes(chunk_size)
+            # 注意这里的逻辑：
+            # 每次循环读取each_time时长的样本，对应的是chunk_size个样本
+            # 每次拿到的样本字节流长度（即buffer长度）是chunk_size*sample_width
+            # 所以最后一次拿到的buffer想要补零的话：
+            #  - 首先计算本次实际拿到的“样本个数”是 len(buffer)//sample_width
+            #  - 然后用numpy补上 “chunk_size-样本个数” 的零
+            print(">>> eatch_time:%s, chunk_size: %s, buffer_len: %s, buffer2arr_shape: %s" % (each_time,chunk_size,len(buffer),np.frombuffer(buffer,dtype=dtype).shape))
+            # 服务端通过添加参数也能做补零了(sample_rate,elapse,sample_width)
+            # if len(buffer)//wf.getsampwidth() < chunk_size:
+            #     pad_zeros = np.zeros((chunk_size-len(buffer)//wf.getsampwidth()),dtype=dtype)
+            #     pad_res = np.hstack([np.frombuffer(buffer,dtype=dtype), pad_zeros])
+            #     buffer = pad_res.tobytes()
+            #     print("after padding a shape=%s zeros, buffer_len: %s" % (pad_zeros.shape, len(buffer)))
+            # Audio(np.frombuffer(buffer, dtype=dtype), rate=wf.getframerate())
+            all_time += each_time
+            audio_info = {"audio": base64.b64encode(buffer).decode(),
+                          "channels": wf.getnchannels(),
+                          "sample_rate": wf.getframerate(),
+                          "elapse": each_time,
+                          "sample_width": wf.getsampwidth(),  # 注意服务端只会对位宽2的音频做补零
+                          "language": "zh",
+                          "ts": int(time.time())
+                          }
+            audio_info_json = json.dumps(audio_info)
+            sio.emit('speech2text', audio_info_json, namespace='/MY_SPACE')
+
+    time.sleep(60*3)
+    # 断开连接
+    sio.disconnect()
 
 if __name__ == '__main__':
-    send_text2speech()
+    # send_text2speech()
+    send_speech2text()
     time.sleep(30)
