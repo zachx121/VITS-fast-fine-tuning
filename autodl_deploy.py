@@ -11,8 +11,9 @@ nums = sys.argv[1]  # e.g. 5表示启动5个docker
 mode = sys.argv[2]  # speech2text, text2speech
 # large模型在3090-24G上只能启动2个(21G); medium在v100-32G能启动4个(28G); base在v100-32G能启动17个(28G)
 # base~1.7G; medium~7G; large~10.5G
+# beam_size从5降到3，best_of从5降到1可以降低显存压力： medium~5.75G; large~10.5G
 # type_speech2text, nums_speech2text = "large-v2", 2
-type_speech2text, nums_speech2text = "medium", 3
+type_speech2text, nums_speech2text = "medium", 4
 # type_speech2text, nums_speech2text = "base", 12
 nums_text2speech = 12
 cmd_dict = {
