@@ -143,7 +143,7 @@ def get_file_as_buffer_stream():
             print("send.")
             buffer = f.readframes(bps)
 
-def send_text2speech():
+def send_text2speech(host):
     import socketio
     import logging
     import threading
@@ -178,16 +178,14 @@ def send_text2speech():
         # t.start()
         # t.join()
 
-    host = "http://region-45.autodl.pro:32280"
     # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
     sio.connect(host + '/MY_SPACE')
     print("send 1st")
     sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
-    time.sleep(1)
 
     print("send 2nd")
     sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': 'en_m_senapi'}), namespace="/MY_SPACE")
-    time.sleep(1)
+    time.sleep(10)
 
 
 def send_text2speech_sounda():
@@ -264,7 +262,7 @@ def send_text2speech_sounda():
     time.sleep(30)
     sys.exit(0)
 
-def send_speech2text():
+def send_speech2text(host):
     import os
     import wave
     import socketio
@@ -292,7 +290,6 @@ def send_speech2text():
         messaged = json.loads(message)
         print("messaged is: '%s'" % messaged)
 
-    host = "http://region-45.autodl.pro:32280"
     sio.connect(host + '/MY_SPACE')
 
     fp = os.path.abspath("./prehot_speech2text.wav")
@@ -335,11 +332,15 @@ def send_speech2text():
             audio_info_json = json.dumps(audio_info)
             sio.emit('speech2text', audio_info_json, namespace='/MY_SPACE')
 
-    time.sleep(60*3)
+    time.sleep(10)
     # 断开连接
     sio.disconnect()
 
+
 if __name__ == '__main__':
-    # send_text2speech()
-    send_speech2text()
-    time.sleep(30)
+    print(sys.argv)
+    if sys.argv[1] == "speech2text":
+        send_speech2text(sys.argv[2])
+    elif sys.argv[2] == "text2speech":
+        send_text2speech(sys.argv[2])
+    time.sleep(5)
