@@ -23,6 +23,10 @@ class Speech2Text:
         self.download_root = download_root
         self.model: Whisper = None
         self.is_init = False
+        # 测试了下3090上3个medium进程并行在(5,2)配置上也达不到准实时
+        # 测试了下3090上3个base进程并行在(5,5)配置上可以达到准实时
+        self.beam_size = 5 if self.model_type == "base" else 3
+        self.best_of = 2 if self.model_type == "base" else 1
 
     def init(self, prehot_audio="./prehot_speech2text.wav"):
         # logging.info(">>> loading whiser model")
@@ -86,8 +90,8 @@ class Speech2Text:
         assert self.model is not None, "self.model is None, should call '.init()' at first"
         result = self.model.transcribe(audio_inp,
                                        task="transcribe",
-                                       beam_size=5,
-                                       best_of=2,
+                                       beam_size=self.beam_size,
+                                       best_of=self.best_of,
                                        word_timestamps=False,
                                        **kwargs)
 
@@ -111,8 +115,8 @@ class Speech2Text:
         # logging.debug("transcribe_buffer>load_audio_raw done.(%s)" % audio.shape)
         result = self.model.transcribe(audio,
                                        task="transcribe",
-                                       beam_size=5,
-                                       best_of=5,
+                                       beam_size=self.beam_size,
+                                       best_of=self.best_of,
                                        word_timestamps=False,
                                        **kwargs)
         if return_details:
