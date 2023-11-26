@@ -138,7 +138,7 @@ def get_file_as_buffer_stream():
             audio_info = {"audio": buffer,
                           "channels": CHANNELS,
                           "sample_rate": SAMPLE_RATE,
-                          "ts": int(time.time())}
+                          "ts": int(time.time()*1000)}
             sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
             print("send.")
             buffer = f.readframes(bps)
@@ -173,7 +173,7 @@ def send_text2speech(host):
         audio_buffer = base64.b64decode(audio_buffer)
         print("receive buffer: len=%s" % len(audio_buffer))
         # 服务端目前是把32转16了（因为客户端耳机只能用16？）
-        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()), dtype=np.int16)
+        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s_%s.wav" % (int(time.time()), messaged["trace_id"]), dtype=np.int16)
         # t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
         # t.start()
         # t.join()
@@ -185,6 +185,9 @@ def send_text2speech(host):
 
     print("send 2nd")
     sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': 'en_m_senapi'}), namespace="/MY_SPACE")
+    all_spekers = "en_m_apple,en_m_armstrong,en_m_pengu,en_m_senapi,en_wm_Beth,en_wm_Boer,en_wm_Kathy,zh_m_AK,zh_m_daniel,zh_m_silang,zh_m_TaiWanKang,zh_wm_TaiWanYu,zh_wm_Annie"
+    for i in all_spekers.split(","):
+        sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': i, 'trace_id': i}), namespace="/MY_SPACE")
     time.sleep(10)
 
 
@@ -293,6 +296,7 @@ def send_speech2text(host):
     sio.connect(host + '/MY_SPACE')
 
     fp = os.path.abspath("./prehot_speech2text.wav")
+    fp = os.path.abspath("/Volumes/MacData/下载HDD/zh_wm_Annie_30s.wav")
     with wave.open(fp, 'rb') as wf:
         print("声道数: %s" % wf.getnchannels())
         print("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
@@ -302,10 +306,14 @@ def send_speech2text(host):
 
         standard_dtypes = {2:np.int16, 4:np.int32}
         dtype = standard_dtypes[wf.getsampwidth()]
-        all_time,each_time = 0,1.0
+        all_time, each_time = 0, 1.0
         while all_time < wf.getnframes()/wf.getframerate():
             chunk_size = int(wf.getframerate() * each_time)  # 采样率*采样时间拿到样本数（取整）
             buffer = wf.readframes(chunk_size)
+            # 如果是双声道要处理成单声道
+            if wf.getnchannels() == 2:
+                audio_data = np.frombuffer(buffer, dtype=np.int16).reshape(-1, 2)
+                buffer = audio_data.mean(axis=1).astype(np.int16)
             # 注意这里的逻辑：
             # 每次循环读取each_time时长的样本，对应的是chunk_size个样本
             # 每次拿到的样本字节流长度（即buffer长度）是chunk_size*sample_width
@@ -327,20 +335,22 @@ def send_speech2text(host):
                           "elapse": each_time,
                           "sample_width": wf.getsampwidth(),  # 注意服务端只会对位宽2的音频做补零
                           "language": "zh",
-                          "ts": int(time.time())
+                          "ts": int(time.time()*1000)
                           }
             audio_info_json = json.dumps(audio_info)
             sio.emit('speech2text', audio_info_json, namespace='/MY_SPACE')
+            time.sleep(0.5)
 
-    time.sleep(10)
+    time.sleep(15)
     # 断开连接
     sio.disconnect()
 
 
 if __name__ == '__main__':
     print(sys.argv)
+    assert len(sys.argv) >= 3
     if sys.argv[1] == "speech2text":
         send_speech2text(sys.argv[2])
-    elif sys.argv[2] == "text2speech":
+    elif sys.argv[1] == "text2speech":
         send_text2speech(sys.argv[2])
     time.sleep(5)
