@@ -221,7 +221,7 @@ def create_app():
         # - 此处要求音频位宽必须是2（后续whisper处理的时候写死了buffer转arr用的int16即2个字节，约定好的暂时不改了）
         sr = data.get('sample_rate', None)
         elapse = data.get('elapse', None)
-        sw = data.get('sample_width', None)
+        sw = data.get('sample_width', 2)
         if all([i is not None for i in [sr, elapse, sw]]) and sw == 2:
             chunk_size = elapse * sr
             if len(data["audio"])//sw < chunk_size:
@@ -258,6 +258,9 @@ def create_app():
 
 
 if __name__ == '__main__':
+    PROCESS_NUM = int(sys.argv[1]) if len(sys.argv) >= 2 else PROCESS_NUM
+    logging.info(">>> 并行进程数量: %s" % PROCESS_NUM)
+
     mp.set_start_method("forkserver")
     manager = mp.Manager()
     Q_speech2text = manager.Queue()

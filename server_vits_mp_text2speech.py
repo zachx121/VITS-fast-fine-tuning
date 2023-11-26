@@ -180,6 +180,8 @@ def create_app():
 
 
 if __name__ == '__main__':
+    PROCESS_NUM = int(sys.argv[1]) if len(sys.argv) >= 2 else PROCESS_NUM
+    logging.info(">>> 并行进程数量: %s" % PROCESS_NUM)
     mp.set_start_method("forkserver")
     manager = mp.Manager()
     Q_text2speech = manager.Queue()
