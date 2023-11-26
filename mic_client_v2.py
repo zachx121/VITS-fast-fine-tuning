@@ -20,7 +20,7 @@ sio = socketio.Client()
 
 @sio.event(namespace='/MY_SPACE')
 def connect():
-    logging.info('connection established')
+    logging.info(f'connection established')
 
 @sio.event(namespace='/MY_SPACE')
 def disconnect():
@@ -69,7 +69,7 @@ def text2speech_rsp(message):
 
 # host = "http://127.0.0.1:6006"
 # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
-host = "http://region-45.autodl.pro:29369"
+host = "http://region-41.seetacloud.com:36595"
 sio.connect(host+'/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
@@ -120,7 +120,7 @@ buffer_queue = Queue()
 buffer_queue_size = Value('i', 0)
 
 def send_data(buffer_queue, lock, buffer_queue_size):
-    wf = wave.open('tmp_output_mic_v2.wav', 'wb')
+    wf = wave.open('tmp_output_mic_v2_SEND.wav', 'wb')
     wf.setnchannels(channels)
     wf.setsampwidth(sample_width)
     wf.setframerate(sample_rate)
@@ -136,7 +136,7 @@ def send_data(buffer_queue, lock, buffer_queue_size):
                               "channels": channels,
                               "sample_rate": sample_rate,
                               "language": "zh",
-                              "ts": int(time.time())
+                              "ts": int(time.time()*1000)
                               }
                 audio_info = json.dumps(audio_info)
                 sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
@@ -151,6 +151,10 @@ if __name__ == '__main__':
 
     try:
         logging.info(">>> 开始监听麦克风")
+        wf = wave.open('tmp_output_mic_v2_ALL.wav', 'wb')
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(sample_rate)
         while True:
             # chunk: 每次读取的音频数据的长度
             data = stream.read(chunk)
@@ -158,10 +162,11 @@ if __name__ == '__main__':
 
             if rms > threshold:
                 # 大于阈值时，将音频数据放入队列
-                logging.debug("   recording rms: %s, buffer_size: %s" % (rms, buffer_queue_size.value))
+                logging.debug(f"   recording rms: {rms}, chunk_size: {chunk}, buffer_len: {len(data)}")
                 with lock:
                     buffer_queue.put(data)
                     buffer_queue_size.value += 1
+            wf.writeframes(data)
 
     except KeyboardInterrupt:
         print('停止录音')
