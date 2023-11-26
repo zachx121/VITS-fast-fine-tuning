@@ -16,6 +16,7 @@ mode = sys.argv[2]  # speech2text, text2speech
 type_speech2text, nums_speech2text = "medium", 4
 # type_speech2text, nums_speech2text = "base", 12
 nums_text2speech = 12
+image_uuid = "image-a37dc0ec6c"  # 服务部署11.27
 cmd_dict = {
     "speech2text": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_speech2text.py {nums_speech2text} {type_speech2text}",
     "text2speech": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_text2speech.py {nums_text2speech}"
@@ -49,7 +50,7 @@ body = {
         "cmd": "%s > nohup.out 2>&1 && sleep infinity " % cmd_dict[mode],  # 启动容器命令
         "price_from": int(0.1*1000),  # 可调度的价格范围。单位：元 * 1000，如0.1元填写100
         "price_to": int(2*1000),
-        "image_uuid": "image-8e6a5a391c",
+        "image_uuid": image_uuid,
     },
 }
 response = requests.post(url, json=body, headers=headers)
