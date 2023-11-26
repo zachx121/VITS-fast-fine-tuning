@@ -167,25 +167,27 @@ def send_text2speech():
     @sio.on("text2speech_rsp", namespace="/MY_SPACE")
     def text2speech_rsp(message):
         messaged = json.loads(message)
+        print("messaged is: '%s'" % messaged)
         sr, audio_buffer = messaged['sr'], messaged['audio_buffer']
         sr = int(sr)
         audio_buffer = base64.b64decode(audio_buffer)
         print("receive buffer: len=%s" % len(audio_buffer))
-        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()))
-        t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
-        t.start()
-        t.join()
+        # 服务端目前是把32转16了（因为客户端耳机只能用16？）
+        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()), dtype=np.int16)
+        # t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
+        # t.start()
+        # t.join()
 
-    host = "http://127.0.0.1:8080"
+    host = "http://region-45.autodl.pro:32280"
     # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
     sio.connect(host + '/MY_SPACE')
-    sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
-    print("send..")
-    sio.emit('text2speech', json.dumps({'text': "我啥都没听到"}), namespace="/MY_SPACE")
+    print("send 1st")
+    sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
     time.sleep(1)
-    print("send..")
+
+    print("send 2nd")
+    sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': 'en_m_senapi'}), namespace="/MY_SPACE")
     time.sleep(1)
-    sio.emit('text2speech', json.dumps({'text': "我是谁"}), namespace="/MY_SPACE")
 
 
 def send_text2speech_sounda():
@@ -264,4 +266,5 @@ def send_text2speech_sounda():
 
 
 if __name__ == '__main__':
-    send_text2speech_sounda()
+    send_text2speech()
+    time.sleep(30)
