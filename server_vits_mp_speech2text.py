@@ -69,11 +69,12 @@ AUDIO_RECORD = {}
 
 
 # 子进程用whisper处理语音转文本，并将结果写入rsp队列
-def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name):
+def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, model_type=WHISPER_MODEL):
     # logging.info(_PID_NAME[os.getpid()]+"process_queue_speech2text start.")
     logging.info("process_queue_speech2text start.")  # 这个时候还没while阻塞，主进程还没执行到更新_PID_NAME字典拿不到NAME
-    logging.debug(">>> Construct&Init Model (device is '%s')" % DEVICE)
-    model = Speech2Text(model_type=WHISPER_MODEL, download_root=SST_MODEL_DIR, device=DEVICE)
+    logging.debug(">>> Construct&Init Model (device is '%s' type is '%s')" % (DEVICE, model_type))
+    # 注意这里如果提前写死了用"WHISPER_MODEL"这个全局变量，那后面__main__里修改了"WHISPER_MODEL"也没用，因为函数已经提前创建好了
+    model = Speech2Text(model_type=model_type, download_root=SST_MODEL_DIR, device=DEVICE)
     model.init()
     logging.debug(">>> Construct&Init Model done.")
     logging.debug("process_queue_speech2text ready.")
@@ -275,7 +276,7 @@ if __name__ == '__main__':
     processes = []
     for idx in range(PROCESS_NUM):
         p1 = mp.Process(target=process_queue_speech2text,
-                        args=(Q_speech2text, Q_speech2text_rsp, SID_INFO, LOCK, _PID_NAME))
+                        args=(Q_speech2text, Q_speech2text_rsp, SID_INFO, LOCK, _PID_NAME, WHISPER_MODEL))
         p1.start()
         processes.append(p1)
         _PID_NAME.update({p1.pid: "子进程%s" % idx})
