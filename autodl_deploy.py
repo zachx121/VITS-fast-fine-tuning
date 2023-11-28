@@ -37,7 +37,7 @@ url = host+"/api/v1/dev/deployment"
 body = {
     "name": "api自动创建",
     "deployment_type": "ReplicaSet",
-    "replica_num": nums,
+    "replica_num": int(nums),
     "container_template": {
         "region_sign": "beijingDC1",  # 容器可调度的地区
         "gpu_name_set": ["RTX 3090"],  # 可调度的GPU型号
@@ -56,19 +56,24 @@ body = {
 response = requests.post(url, json=body, headers=headers)
 print(response.content.decode())
 info = json.loads(response.content.decode())
-deploy_uuid = info["deployment_uuid"]
+deploy_uuid = info["data"]["deployment_uuid"]
 
 
-# 轮训检查部署是否完成
-for i in range(10):
+print(">>> 轮训检查部署是否完成")
+max_cnt=50
+for i in range(max_cnt):
     response = requests.post(host + "/api/v1/dev/deployment/list",
                              json={"page_index": 1, "page_size": 100},
                              headers=headers)
     deploy_rsp = json.loads(response.content.decode())
     deploy_info = [i for i in deploy_rsp['data']['list'] if i['uuid'] == deploy_uuid][0]
     if deploy_info["status"] != "running" or deploy_info["replica_num"] != deploy_info["running_num"]:
-        logging.info("部署还未完成 ...")
-    time.sleep(10)  # 10s
+        print(f"部署还未完成 (status:{deploy_info['status']}, starting:{deploy_info['starting_num']}, running:{deploy_info['running_num']})")
+        time.sleep(5)  # 10s
+        print(f"镜像启动完成 (status:{deploy_info['status']}, starting:{deploy_info['starting_num']}, running:{deploy_info['running_num']})")
+        print("sleep 10s等待镜像内服务初始化")
+        break
+
 
 time.sleep(10)
 # 拿到这次部署的所有container的service_url测试服务
