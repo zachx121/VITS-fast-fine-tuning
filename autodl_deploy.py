@@ -13,7 +13,7 @@ mode = sys.argv[2]  # speech2text, text2speech
 # base~1.7G; medium~7G; large~10.5G
 # beam_size从5降到3，best_of从5降到1可以降低显存压力： medium~5.75G; large~10.5G
 # type_speech2text, nums_speech2text = "large-v2", 2
-type_speech2text, nums_speech2text = "medium", 4
+type_speech2text, nums_speech2text = "medium", 3
 # type_speech2text, nums_speech2text = "base", 12
 nums_text2speech = 12
 image_uuid = "image-a37dc0ec6c"  # 服务部署11.27
