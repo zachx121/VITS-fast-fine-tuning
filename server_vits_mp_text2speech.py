@@ -43,7 +43,7 @@ import wave
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging.info(">>> [DEVICE]: %s" % DEVICE)
 
-DEBUG = True
+DEBUG = False
 PORT = 6006
 PROCESS_NUM = 2
 TTS_MODEL_DIR = "/root/autodl-fs/vits_models/OUTPUT_MODEL_en"

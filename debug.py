@@ -296,7 +296,7 @@ def send_speech2text(host):
     sio.connect(host + '/MY_SPACE')
 
     fp = os.path.abspath("./prehot_speech2text.wav")
-    fp = os.path.abspath("/Volumes/MacData/下载HDD/zh_wm_Annie_30s.wav")
+    # fp = os.path.abspath("/Volumes/MacData/下载HDD/zh_wm_Annie_30s.wav")
     with wave.open(fp, 'rb') as wf:
         print("声道数: %s" % wf.getnchannels())
         print("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
