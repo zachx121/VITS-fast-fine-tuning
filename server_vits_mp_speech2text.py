@@ -126,7 +126,14 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
         data, t_str, sid = q_input.get()
         # ts_data = data['ts']
         lang = data.get("language", None)
-        lang = lang if lang in whisper.tokenizer.LANGUAGES else None
+        if lang is None:
+            logging.warning("请求未提供 'language' 参数，效果可能变差 (data.keys: %s)" % data.keys())
+        elif lang not in whisper.tokenizer.LANGUAGES:
+            logging.warning("'language' 参数指定了不支持的语言%s" % lang)
+            lang = None
+        else:
+            pass
+        return_details = DEBUG or data.get("return_details", "0") == "1"
 
         if data is None:
             logging.info(_pid_name[os.getpid()] + "data is None, break now. %s" % t_str)
@@ -173,7 +180,6 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
             # 此时p2拿数据是不等锁的，就直接拿到了新数据构成 "buffer+1s+newBuffer"；
             #   - 此时p2判断结尾0.5s显然不是空音频了
             # 所以要先清空"buffer+1s"被P1判断后直接清空
-            return_details = DEBUG or data.get("return_details", "0") == "1"
             text = model.transcribe_buffer(buffer2clear,
                                            sr_inp=SAMPLE_RATE,
                                            channels_inp=CHANNELS,
