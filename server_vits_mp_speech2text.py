@@ -64,7 +64,7 @@ CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
 BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
 RMS_LAST_TIME = 0.5  # 取音频的最后多久计算RMS
 RMS_HOLDER = 500  # 最后一段音频小于多少音量时，视为结束，清空buffer （有子进程轮询兜底追空音频所以不担心无法结束）
-NS_PROB_HOLDER = 0.8  # 超过多少的概率，认为是非说话声音，返回空串
+NS_PROB_HOLDER = 0.5  # 超过多少的概率，认为是非说话声音，返回空串
 AUDIO_RECORD = {}
 
 
@@ -182,7 +182,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
             if DEBUG:
                 logging.debug("清空前把buffer存下来")
                 utils_audio.save_audio_buffer(info["buffer"], SAMPLE_RATE,
-                                              fp="debug_audio_%s.wav" % info["last_active_time"], dtype=np.int16)
+                                              fp="debug_audio_%s_%s.wav" % (request.sid, info["last_active_time"]), dtype=np.int16)
             logging.debug(_pid_name[os.getpid()] + "    识别到结束，发送最终文本(预览前20字) '%s'" % text[:20])
             rsp = json.dumps({"text": text, "mid": "0", "trace_id": data.get("trace_id","")})
             # socketio.emit("speech2text_rsp", rsp, to=sid, namespace=NAME_SPACE)
@@ -197,7 +197,8 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
                                                channels_inp=CHANNELS,
                                                language=lang,
                                                fp16=False,
-                                               return_details=DEBUG,prob_holder=NS_PROB_HOLDER)
+                                               return_details=DEBUG,
+                                               prob_holder=NS_PROB_HOLDER)
                 logging.debug(_pid_name[os.getpid()] + "    transcribed: '%s'" % text)
                 rsp = json.dumps({"text": text, "mid": "1", "trace_id": data.get("trace_id","")})
 
