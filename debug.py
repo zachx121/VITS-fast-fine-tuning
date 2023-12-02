@@ -3,6 +3,7 @@ import sys
 import time
 import scipy
 import numpy as np
+import multiprocessing as mp
 
 import utils_audio
 import json
@@ -279,8 +280,18 @@ def send_speech2text(host):
 if __name__ == '__main__':
     print(sys.argv)
     assert len(sys.argv) >= 3
-    if sys.argv[1] == "speech2text":
-        send_speech2text(sys.argv[2])
-    elif sys.argv[1] == "text2speech":
-        send_text2speech(sys.argv[2])
-    time.sleep(5)
+    p_nums = int(sys.argv[3]) if len(sys.argv) >= 4 else 1
+    mp.set_start_method("forkserver")
+    print(f">>> 并发数 {p_nums}")
+    for idx in range(p_nums):
+        func = None
+        if sys.argv[1] == "speech2text":
+            func = send_speech2text
+        elif sys.argv[1] == "text2speech":
+            func = send_text2speech
+        else:
+            print(f">>> invalid argv[1]: '{sys.argv[1]}'")
+        p1 = mp.Process(target=func, args=(sys.argv[2],))
+        p1.start()
+
+    time.sleep(20)

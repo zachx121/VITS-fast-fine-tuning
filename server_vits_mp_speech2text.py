@@ -162,7 +162,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
                 sid_info.update({sid: info})
             else:
                 # 兜底，万一出现请求的sid不在SID_INFO里记录着，就直接跳过这个请求后续的处理
-                logging.error(f"出现了一个不在SID_INFO里记录的sid:{sid}, SID_INFO.keys:{SID_INFO.keys()}")
+                logging.error(f"出现了一个不在SID_INFO里记录的sid:{sid}, SID_INFO.keys:{sid_info.keys()}")
                 continue
         logging.debug(_pid_name[os.getpid()] + "    with lock结束")
 
@@ -256,7 +256,8 @@ def create_app(sid_info, lock):
     @socketio.on("disconnect", namespace=NAME_SPACE)
     def disconnect_msg():
         logging.info(f"client disconnected. {request.sid}")
-        sid_info.pop(request.sid)
+        with lock:
+            sid_info.pop(request.sid)
 
     @socketio.on("speech2text", namespace=NAME_SPACE)
     def speech2text(data):
