@@ -128,7 +128,6 @@ class Speech2Text:
         else:
             res = "".join([seg["text"] for seg in result['segments'] 
                            if float(seg['no_speech_prob']) <= kwargs.get("prob_holder", 1.0)])
-            res = "[EMPTY]" if res == "" else res
             return res
 
     @staticmethod
