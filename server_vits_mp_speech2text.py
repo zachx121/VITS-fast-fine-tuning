@@ -173,12 +173,13 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
             # 此时p2拿数据是不等锁的，就直接拿到了新数据构成 "buffer+1s+newBuffer"；
             #   - 此时p2判断结尾0.5s显然不是空音频了
             # 所以要先清空"buffer+1s"被P1判断后直接清空
+            return_details = DEBUG or data.get("return_details", "0") == "1"
             text = model.transcribe_buffer(buffer2clear,
                                            sr_inp=SAMPLE_RATE,
                                            channels_inp=CHANNELS,
                                            language=lang,
                                            fp16=False,
-                                           return_details=DEBUG, prob_holder=NS_PROB_HOLDER)
+                                           return_details=return_details, prob_holder=NS_PROB_HOLDER)
             if DEBUG:
                 logging.debug("清空前把buffer存下来")
                 utils_audio.save_audio_buffer(info["buffer"], SAMPLE_RATE,
