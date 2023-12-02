@@ -1,7 +1,7 @@
 import base64
 import sys
 import time
-
+import scipy
 import numpy as np
 
 import utils_audio
@@ -173,7 +173,9 @@ def send_text2speech(host):
         audio_buffer = base64.b64decode(audio_buffer)
         print("receive buffer: len=%s" % len(audio_buffer))
         # 服务端目前是把32转16了（因为客户端耳机只能用16？）
-        utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s_%s.wav" % (int(time.time()), messaged["trace_id"]), dtype=np.int16)
+        fp = "./vits_t2s_%s_%s.wav" % (int(time.time()), messaged["trace_id"])
+        scipy.io.wavfile.write(fp, sr, np.frombuffer(audio_buffer, dtype=np.int16))
+        # utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s_%s.wav" % (int(time.time()), messaged["trace_id"]), dtype=np.int16)
         # t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
         # t.start()
         # t.join()
@@ -184,86 +186,14 @@ def send_text2speech(host):
     sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
 
     print("send 2nd")
-    sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': 'en_m_senapi'}), namespace="/MY_SPACE")
-    all_spekers = "en_m_apple,en_m_armstrong,en_m_pengu,en_m_senapi,en_wm_Beth,en_wm_Boer,en_wm_Kathy,zh_m_AK,zh_m_daniel,zh_m_silang,zh_m_TaiWanKang,zh_wm_TaiWanYu,zh_wm_Annie"
-    for i in all_spekers.split(","):
-        sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': i, 'trace_id': i}), namespace="/MY_SPACE")
+    sio.emit('text2speech', json.dumps({'text': "I'm speaking english now. This is an English speaking test, can you hear me?",
+                                        'speaker': 'en_m_armstrong'}), namespace="/MY_SPACE")
+
+    # print("send all speakers")
+    # all_spekers = "en_m_apple,en_m_armstrong,en_m_pengu,en_m_senapi,en_wm_Beth,en_wm_Boer,en_wm_Kathy,zh_m_AK,zh_m_daniel,zh_m_silang,zh_m_TaiWanKang,zh_wm_TaiWanYu,zh_wm_Annie"
+    # for i in all_spekers.split(","):
+    #     sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': i, 'trace_id': i}), namespace="/MY_SPACE")
     time.sleep(10)
-
-
-def send_text2speech_sounda():
-    import librosa
-    import socketio
-    import logging
-    import threading
-    import utils_audio
-    sio = socketio.Client()
-
-    @sio.event(namespace='/MY_SPACE')
-    def connect():
-        logging.info('connection established')
-
-    @sio.event(namespace='/MY_SPACE')
-    def disconnect():
-        logging.info('disconnected from server')
-
-    @sio.on("upload_speaker_rsp", namespace="/MY_SPACE")
-    def upload_speaker_rsp(message):
-        print(upload_speaker_rsp)
-
-    @sio.on("text2speech_rsp", namespace="/MY_SPACE")
-    def text2speech_rsp(message):
-        messaged = json.loads(message)
-        if messaged["status"] != "0":
-            logging.error("Some Err. message is '%s'" % messaged["msg"])
-        else:
-            sr, audio_buffer = messaged['sr'], messaged['audio_buffer']
-            sr = int(sr)
-            audio_buffer = base64.b64decode(audio_buffer)
-            print("receive buffer: len=%s" % len(audio_buffer))
-            utils_audio.save_audio_buffer(audio_buffer, sr, "./vits_t2s_%s.wav" % int(time.time()), dtype=np.int16)
-            # t = threading.Thread(target=utils_audio.play_audio, args=(audio_buffer, sr))
-            # t.start()
-            # t.join()
-
-    # host = "http://127.0.0.1:8080"
-    host = "http://region-45.autodl.pro:29369"
-    sio.connect(host + '/MY_SPACE')
-
-    # 上传需要克隆的声音素材
-    def upload():
-        print("uploading...")
-        wav, source_sr = librosa.load("/Users/didi/0-Code/#samples/CXM/audio_daniel_2021-part0.wav", sr=None)
-        upd_speaker = {"audio": base64.b64encode(wav.tobytes()).decode(),
-                       "speaker": "cxm",
-                       "language": "zh"}
-        sio.emit('upload_speaker', json.dumps(upd_speaker), namespace='/MY_SPACE')
-        time.sleep(10)
-
-        print("uploading...")
-        wav, source_sr = librosa.load("/Users/didi/0-Code/#samples/female_p1_i.wav", sr=None)
-        upd_speaker = {"audio": base64.b64encode(wav.tobytes()).decode(),
-                       "speaker": "female_p1",
-                       "language": "zh"}
-        sio.emit('upload_speaker', json.dumps(upd_speaker), namespace='/MY_SPACE')
-        time.sleep(10)
-
-        print("uploading...")
-        wav, source_sr = librosa.load("/Users/didi/0-Code/#samples/male_p1_i.wav", sr=None)
-        upd_speaker = {"audio": base64.b64encode(wav.tobytes()).decode(),
-                       "speaker": "male_p1",
-                       "language": "zh"}
-        sio.emit('upload_speaker', json.dumps(upd_speaker), namespace='/MY_SPACE')
-        time.sleep(10)
-
-    for speaker in ["四郎配音", "daniel", "xr", "zhongli"]:
-        sio.emit('text2speech',
-                 json.dumps({'text': "致以诚挚的祝愿和美好的祝福", 'speaker': speaker, "language": "zh"}),
-                 namespace="/MY_SPACE")
-        time.sleep(1)
-
-    time.sleep(30)
-    sys.exit(0)
 
 def send_speech2text(host):
     import os
@@ -345,7 +275,7 @@ def send_speech2text(host):
     # 断开连接
     sio.disconnect()
 
-
+# python debug.py text2speech http://region-41.seetacloud.com:33401/
 if __name__ == '__main__':
     print(sys.argv)
     assert len(sys.argv) >= 3
