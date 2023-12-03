@@ -1,10 +1,14 @@
+import logging
+logging.basicConfig(format='[%(asctime)s-%(process)d-%(levelname)s]: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.INFO)
+
 import base64
 import sys
 import time
 import scipy
 import numpy as np
 import multiprocessing as mp
-
 import utils_audio
 import json
 
@@ -112,38 +116,6 @@ def find_quiet_in_buffer():
     plt.plot(X, Y)
     plt.show()
 
-
-def get_file_as_buffer_stream():
-    SAMPLE_RATE = 16000  # 采样频率
-    SAMPLE_WIDTH = 2  # 标准的16位PCM音频中，每个样本占用2个字节
-    CHANNELS = 1  # 音频通道数
-    CLEAR_GAP = 1  # 每隔多久没有收到新数据就认为要清空语音buffer
-    BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
-
-    import time
-    import wave
-    import socketio
-    sio = socketio.Client()
-    host = "http://127.0.0.1:8080"
-    # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
-    sio.connect(host + '/MY_SPACE')
-
-    with wave.open("/Users/didi/0-Code/#samples/CXM/audio_daniel_2021-part0.wav") as f:
-        sr = f.getframerate()
-        sw = f.getsampwidth()
-        c = f.getnchannels()
-        bps = sr*sw*c
-
-        buffer = f.readframes(bps)
-        while len(buffer) > 0:
-            audio_info = {"audio": buffer,
-                          "channels": CHANNELS,
-                          "sample_rate": SAMPLE_RATE,
-                          "ts": int(time.time()*1000)}
-            sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
-            print("send.")
-            buffer = f.readframes(bps)
-
 def send_text2speech(host):
     import socketio
     import logging
@@ -222,22 +194,24 @@ def send_speech2text(host):
     @sio.on("speech2text_rsp", namespace="/MY_SPACE")
     def speech2text_rsp(message):
         messaged = json.loads(message)
-        print("messaged is: '%s'" % messaged)
+        logging.info("messaged is: '%s'" % messaged)
+        if messaged['mid'] == '0':
+            logging.warning(messaged['text'])
 
     sio.connect(host + '/MY_SPACE')
 
-    fp = os.path.abspath("./prehot_speech2text.wav")
+    fp = os.path.abspath("./backup_for_mic_test.wav")
     # fp = os.path.abspath("/Volumes/MacData/下载HDD/zh_wm_Annie_30s.wav")
     with wave.open(fp, 'rb') as wf:
-        print("声道数: %s" % wf.getnchannels())
-        print("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
-        print("采样总数(样本总数、数组长度): %s" % wf.getnframes())
-        print("采样宽度(样本宽度): %s" % wf.getsampwidth())  # 标准的16位PCM音频中，每个样本占用2个字节
-        print("音频总时长: %s" % (wf.getnframes()/wf.getframerate()))
+        logging.debug("声道数: %s" % wf.getnchannels())
+        logging.debug("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
+        logging.debug("采样总数(样本总数、数组长度): %s" % wf.getnframes())
+        logging.debug("采样宽度(样本宽度): %s" % wf.getsampwidth())  # 标准的16位PCM音频中，每个样本占用2个字节
+        logging.debug("音频总时长: %s" % (wf.getnframes()/wf.getframerate()))
 
         standard_dtypes = {2:np.int16, 4:np.int32}
         dtype = standard_dtypes[wf.getsampwidth()]
-        all_time, each_time = 0, 1.0
+        all_time, each_time = 0, 400/1e3
         while all_time < wf.getnframes()/wf.getframerate():
             chunk_size = int(wf.getframerate() * each_time)  # 采样率*采样时间拿到样本数（取整）
             buffer = wf.readframes(chunk_size)
@@ -251,7 +225,7 @@ def send_speech2text(host):
             # 所以最后一次拿到的buffer想要补零的话：
             #  - 首先计算本次实际拿到的“样本个数”是 len(buffer)//sample_width
             #  - 然后用numpy补上 “chunk_size-样本个数” 的零
-            print(">>> eatch_time:%s, chunk_size: %s, buffer_len: %s, buffer2arr_shape: %s" % (each_time,chunk_size,len(buffer),np.frombuffer(buffer,dtype=dtype).shape))
+            logging.debug(">>> eatch_time:%s, chunk_size: %s, buffer_len: %s, buffer2arr_shape: %s" % (each_time,chunk_size,len(buffer),np.frombuffer(buffer,dtype=dtype).shape))
             # 服务端通过添加参数也能做补零了(sample_rate,elapse,sample_width)
             # if len(buffer)//wf.getsampwidth() < chunk_size:
             #     pad_zeros = np.zeros((chunk_size-len(buffer)//wf.getsampwidth()),dtype=dtype)
@@ -266,23 +240,24 @@ def send_speech2text(host):
                           "elapse": each_time,
                           "sample_width": wf.getsampwidth(),  # 注意服务端只会对位宽2的音频做补零
                           "language": "zh",
-                          "ts": int(time.time()*1000)
+                          "ts": int(time.time()*1000),
+                          "return_details": "1",
                           }
             audio_info_json = json.dumps(audio_info)
             sio.emit('speech2text', audio_info_json, namespace='/MY_SPACE')
-            time.sleep(0.5)
+            time.sleep(each_time+5/1e3)
 
-    time.sleep(15)
+    time.sleep(200)
     # 断开连接
     sio.disconnect()
 
 # python debug.py text2speech http://region-41.seetacloud.com:33401/
 if __name__ == '__main__':
-    print(sys.argv)
+    logging.info(str(sys.argv))
     assert len(sys.argv) >= 3
     p_nums = int(sys.argv[3]) if len(sys.argv) >= 4 else 1
     mp.set_start_method("forkserver")
-    print(f">>> 并发数 {p_nums}")
+    logging.info(f">>> 并发数 {p_nums}")
     for idx in range(p_nums):
         func = None
         if sys.argv[1] == "speech2text":
@@ -290,8 +265,10 @@ if __name__ == '__main__':
         elif sys.argv[1] == "text2speech":
             func = send_text2speech
         else:
-            print(f">>> invalid argv[1]: '{sys.argv[1]}'")
+            logging.info(f">>> invalid argv[1]: '{sys.argv[1]}'")
         p1 = mp.Process(target=func, args=(sys.argv[2],))
         p1.start()
+        time.sleep(10/1e3)  # 10ms避免自己机器挂了
+        logging.info(f"进程启动-{idx}")
 
-    time.sleep(20)
+    time.sleep(100)
