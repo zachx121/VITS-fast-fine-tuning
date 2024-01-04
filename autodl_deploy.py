@@ -16,7 +16,8 @@ mode = sys.argv[2]  # speech2text, text2speech
 type_speech2text, nums_speech2text = "medium", 3
 # type_speech2text, nums_speech2text = "base", 12
 nums_text2speech = 12
-image_uuid = "image-a37dc0ec6c"  # 服务部署11.27
+#image_uuid = "image-a37dc0ec6c"  # 服务部署11.27
+image_uuid = "image-0067222da6"  # 服务部署12.03
 cmd_dict = {
     "speech2text": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_speech2text.py {nums_speech2text} {type_speech2text}",
     "text2speech": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_text2speech.py {nums_text2speech}"
