@@ -69,7 +69,8 @@ def text2speech_rsp(message):
 
 # host = "http://127.0.0.1:6006"
 # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
-host = "http://region-41.seetacloud.com:36595"
+host = "https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/"
+LANG = "EN"
 sio.connect(host+'/MY_SPACE')
 time.sleep(5)
 sio.emit('my_event', {'data': 'Hello, World!'}, namespace='/MY_SPACE')
@@ -135,14 +136,16 @@ def send_data(buffer_queue, lock, buffer_queue_size):
                 audio_info = {"audio": base64.b64encode(buffer_cache).decode(),
                               "channels": channels,
                               "sample_rate": sample_rate,
-                              "language": "zh",
-                              "ts": int(time.time()*1000)
+                              "language": LANG,
+                              "ts": int(time.time()*1000),
+                              "return_details": "1",
                               }
                 audio_info = json.dumps(audio_info)
                 sio.emit('speech2text', audio_info, namespace='/MY_SPACE')
                 wf.writeframes(buffer_cache)
 
 
+# https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/
 if __name__ == '__main__':
     # 创建并启动发送数据的进程
     lock = Lock()

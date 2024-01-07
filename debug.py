@@ -197,9 +197,9 @@ def send_speech2text(args):
     def speech2text_rsp(message):
         messaged = json.loads(message)
         logging.info("messaged is: '%s'" % messaged)
-        print("messaged is: '%s'" % messaged+" "*10, flush=True, end='\r')
+        print("messaged is: '%s'" % messaged+" "*50, flush=True, end='\r')
         if messaged['mid'] == '0':
-            print("\n\n"+messaged['text']+"\n")
+            print("\n>>>"+messaged['text']+"\n")
             logging.warning(messaged['text'])
 
     sio.connect(args.host + '/MY_SPACE')
@@ -259,7 +259,7 @@ def send_speech2text(args):
     sio.disconnect()
 
 
-# python debug.py -S speech2text -H https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/
+# python debug.py -S speech2text -H  https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-S', '--service', type=str, required=True,
