@@ -185,7 +185,8 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
                                            channels_inp=CHANNELS,
                                            language=lang,
                                            fp16=False,
-                                           return_details=return_details, prob_holder=NS_PROB_HOLDER)
+                                           return_details=return_details,
+                                           prob_holder=NS_PROB_HOLDER)
             if DEBUG:
                 logging.debug("清空前把buffer存下来")
                 utils_audio.save_audio_buffer(info["buffer"], SAMPLE_RATE,
@@ -204,7 +205,7 @@ def process_queue_speech2text(q_input, q_output, sid_info, lock, _pid_name, mode
                                                channels_inp=CHANNELS,
                                                language=lang,
                                                fp16=False,
-                                               return_details=DEBUG,
+                                               return_details=return_details,
                                                prob_holder=NS_PROB_HOLDER)
                 logging.debug(_pid_name[os.getpid()] + "    transcribed: '%s'" % text)
                 rsp = json.dumps({"text": text, "mid": "1", "trace_id": data.get("trace_id","")})
@@ -334,6 +335,7 @@ def create_app(sid_info, lock):
     return app, socketio
 
 
+# python server_vits_mp_speech2text.py 3 medium
 if __name__ == '__main__':
     PROCESS_NUM = int(sys.argv[1]) if len(sys.argv) >= 2 else PROCESS_NUM
     WHISPER_MODEL = sys.argv[2] if len(sys.argv) >= 3 else WHISPER_MODEL

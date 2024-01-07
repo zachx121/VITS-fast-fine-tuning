@@ -1,7 +1,8 @@
 import logging
 logging.basicConfig(format='[%(asctime)s-%(process)d-%(levelname)s]: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.INFO)
+                    level=logging.INFO,
+                    filename="./tmp.log")
 
 import base64
 import sys
@@ -11,6 +12,7 @@ import numpy as np
 import multiprocessing as mp
 import utils_audio
 import json
+from argparse import ArgumentParser,ArgumentTypeError
 
 # 先用english2ipa拿到国际注音的ipa，然后再把ipa注音转成romaji注音
 def ipa2romaji():
@@ -116,7 +118,7 @@ def find_quiet_in_buffer():
     plt.plot(X, Y)
     plt.show()
 
-def send_text2speech(host):
+def send_text2speech(args):
     import socketio
     import logging
     import threading
@@ -154,7 +156,7 @@ def send_text2speech(host):
         # t.join()
 
     # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
-    sio.connect(host + '/MY_SPACE')
+    sio.connect(args.host + '/MY_SPACE')
     print("send 1st")
     sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
 
@@ -168,7 +170,7 @@ def send_text2speech(host):
     #     sio.emit('text2speech', json.dumps({'text': "I'm speaking english now", 'speaker': i, 'trace_id': i}), namespace="/MY_SPACE")
     time.sleep(10)
 
-def send_speech2text(host):
+def send_speech2text(args):
     import os
     import wave
     import socketio
@@ -195,21 +197,25 @@ def send_speech2text(host):
     def speech2text_rsp(message):
         messaged = json.loads(message)
         logging.info("messaged is: '%s'" % messaged)
+        print("messaged is: '%s'" % messaged+" "*10, flush=True, end='\r')
         if messaged['mid'] == '0':
+            print("\n\n"+messaged['text']+"\n")
             logging.warning(messaged['text'])
 
-    sio.connect(host + '/MY_SPACE')
+    sio.connect(args.host + '/MY_SPACE')
 
-    fp = os.path.abspath("./backup_for_mic_test.wav")
+    fp = os.path.abspath(args.stt_file)
     # fp = os.path.abspath("/Volumes/MacData/下载HDD/zh_wm_Annie_30s.wav")
     with wave.open(fp, 'rb') as wf:
         logging.debug("声道数: %s" % wf.getnchannels())
-        logging.debug("采样率: %s" % wf.getframerate()) # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
+        logging.debug("采样率: %s" % wf.getframerate())  # 一秒多少个样本（样本数*样本宽就是一秒多少字节）
         logging.debug("采样总数(样本总数、数组长度): %s" % wf.getnframes())
         logging.debug("采样宽度(样本宽度): %s" % wf.getsampwidth())  # 标准的16位PCM音频中，每个样本占用2个字节
         logging.debug("音频总时长: %s" % (wf.getnframes()/wf.getframerate()))
 
-        standard_dtypes = {2:np.int16, 4:np.int32}
+        standard_dtypes = {2: np.int16, 4: np.int32}
+        if wf.getsampwidth() != 2:
+            logging.warning(f"注意服务端只会对位宽2的音频做补零,当前音频位宽为{wf.getsampwidth()}")
         dtype = standard_dtypes[wf.getsampwidth()]
         all_time, each_time = 0, 400/1e3
         while all_time < wf.getnframes()/wf.getframerate():
@@ -242,6 +248,7 @@ def send_speech2text(host):
                           "language": "zh",
                           "ts": int(time.time()*1000),
                           "return_details": "1",
+                          "trace_id": int(time.time()*1000),
                           }
             audio_info_json = json.dumps(audio_info)
             sio.emit('speech2text', audio_info_json, namespace='/MY_SPACE')
@@ -251,22 +258,29 @@ def send_speech2text(host):
     # 断开连接
     sio.disconnect()
 
-# python debug.py text2speech http://region-41.seetacloud.com:33401/
+
+# python debug.py -S speech2text -H https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/
 if __name__ == '__main__':
-    logging.info(str(sys.argv))
-    assert len(sys.argv) >= 3
-    p_nums = int(sys.argv[3]) if len(sys.argv) >= 4 else 1
+    parser = ArgumentParser()
+    parser.add_argument('-S', '--service', type=str, required=True,
+                        help="测试的目标服务(e.g. speech2text,text2speech)")
+    parser.add_argument('-H', '--host', type=str, required=True,
+                        help="测试的目标服务的host")
+    parser.add_argument('--pnums', type=int, default=1, help="请求并发数")
+    parser.add_argument('--stt_file', type=str, default="./backup_for_mic_test.wav", help="用作语音识别的音频文件")
+    args = parser.parse_args()
+    logging.info(str(args))
     mp.set_start_method("forkserver")
-    logging.info(f">>> 并发数 {p_nums}")
-    for idx in range(p_nums):
+    logging.info(f">>> 并发数 {args.pnums}")
+    for idx in range(args.pnums):
         func = None
-        if sys.argv[1] == "speech2text":
+        if args.service == "speech2text":
             func = send_speech2text
-        elif sys.argv[1] == "text2speech":
+        elif args.service == "text2speech":
             func = send_text2speech
         else:
-            logging.info(f">>> invalid argv[1]: '{sys.argv[1]}'")
-        p1 = mp.Process(target=func, args=(sys.argv[2],))
+            logging.info(f">>> invalid service: '{args.service}'")
+        p1 = mp.Process(target=func, args=(args,))
         p1.start()
         time.sleep(10/1e3)  # 10ms避免自己机器挂了
         logging.info(f"进程启动-{idx}")
