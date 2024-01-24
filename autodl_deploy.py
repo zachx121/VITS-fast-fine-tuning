@@ -15,12 +15,13 @@ mode = sys.argv[2]  # speech2text, text2speech
 # type_speech2text, nums_speech2text = "large-v2", 2
 type_speech2text, nums_speech2text = "medium", 3
 # type_speech2text, nums_speech2text = "base", 12
-nums_text2speech = 12
-# image_uuid = "image-a37dc0ec6c"  # 服务部署11.27
+lang, nums_text2speech = "en", 12
+# en speakers: en_m_apple,en_m_armstrong,en_m_pengu,en_m_senapi,en_wm_Beth,en_wm_Boer,en_wm_Kathy,zh_m_AK,zh_m_daniel,zh_m_silang,zh_m_TaiWanKang,zh_wm_TaiWanYu,zh_wm_Annie
+# zh speakers: 四郎配音,bruce,daniel,zhongli
 image_uuid = "image-0067222da6"  # 服务部署12.03
 cmd_dict = {
     "speech2text": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_speech2text.py {nums_speech2text} {type_speech2text}",
-    "text2speech": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_text2speech.py {nums_text2speech}"
+    "text2speech": f"cd Serving_VITS-fast-fine-tuning/ && python server_vits_mp_text2speech.py {nums_text2speech} {lang}"
 }
 
 headers = {

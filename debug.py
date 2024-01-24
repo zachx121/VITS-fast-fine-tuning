@@ -157,12 +157,18 @@ def send_text2speech(args):
 
     # host = "https://zach-0p2qy1scjuj9.serv-c1.openbayes.net"
     sio.connect(args.host + '/MY_SPACE')
-    print("send 1st")
-    sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
+    lang = "zh"
+    if lang.lower() == "zh":
+        print("send 1st")
+        sio.emit('text2speech', json.dumps({'text': "这里是四郎，给周贵妃问好",
+                                            'speaker': '四郎配音'}), namespace="/MY_SPACE")
+    elif lang.lower() == "en":
+        print("send 1st")
+        sio.emit('text2speech', json.dumps({'text': "我啥都没听到", 'speaker': 'zh_m_daniel'}), namespace="/MY_SPACE")
 
-    print("send 2nd")
-    sio.emit('text2speech', json.dumps({'text': "I'm speaking english now. This is an English speaking test, can you hear me?",
-                                        'speaker': 'en_m_armstrong'}), namespace="/MY_SPACE")
+        print("send 2nd")
+        sio.emit('text2speech', json.dumps({'text': "I'm speaking english now. This is an English speaking test, can you hear me?",
+                                            'speaker': 'en_m_armstrong'}), namespace="/MY_SPACE")
 
     # print("send all speakers")
     # all_spekers = "en_m_apple,en_m_armstrong,en_m_pengu,en_m_senapi,en_wm_Beth,en_wm_Boer,en_wm_Kathy,zh_m_AK,zh_m_daniel,zh_m_silang,zh_m_TaiWanKang,zh_wm_TaiWanYu,zh_wm_Annie"
@@ -260,6 +266,7 @@ def send_speech2text(args):
 
 
 # python debug.py -S speech2text -H  https://u212392-8949-c90b5b8c.beijinga.seetacloud.com/
+# python debug.py -S text2speech -H  http://region-41.seetacloud.com:25000/
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-S', '--service', type=str, required=True,

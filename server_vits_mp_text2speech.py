@@ -47,10 +47,9 @@ DEBUG = False
 PORT = 6006
 PROCESS_NUM = 2
 TTS_MODEL_DIR = "/root/autodl-fs/vits_models/OUTPUT_MODEL_en"
+TTS_MODEL_DIR_ZH = "/root/autodl-fs/vits_models/OUTPUT_MODEL_四郎_daniel_bruce"
 OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-logging.info(">>> [PORT]: %s" % PORT)
-logging.info(">>> [TTS_MODEL_DIR]: %s" % TTS_MODEL_DIR)
 
 
 NAME_SPACE = '/MY_SPACE'
@@ -62,11 +61,11 @@ BYTES_PER_SEC = SAMPLE_RATE*SAMPLE_WIDTH*CHANNELS
 AUDIO_RECORD = {}
 
 # 子线程用vits进行声音合成（文本转语音）
-def process_queue_text2speech(q_input, q_output):
+def process_queue_text2speech(model_dir, q_input, q_output):
     logging.info("process_queue_text2speech start.")
     logging.info(">>> Construct&Init Model (device is '%s')" % DEVICE)
-    M_tts = Text2Speech_vits(model_dir=os.path.join(TTS_MODEL_DIR,"G_latest.pth"),
-                             config_fp=os.path.join(TTS_MODEL_DIR,"config.json"))
+    M_tts = Text2Speech_vits(model_dir=os.path.join(model_dir,"G_latest.pth"),
+                             config_fp=os.path.join(model_dir,"config.json"))
     M_tts.init()
     logging.info(">>> Construct&Init Model done.")
     logging.info(">>> Speakers: %s" % ",".join(M_tts.hparams['speakers'].keys()))
@@ -181,7 +180,12 @@ def create_app():
 
 if __name__ == '__main__':
     PROCESS_NUM = int(sys.argv[1]) if len(sys.argv) >= 2 else PROCESS_NUM
+    if len(sys.argv) >= 3:
+        if sys.argv[2].lower() == "zh":
+            TTS_MODEL_DIR = TTS_MODEL_DIR_ZH
     logging.info(">>> 并行进程数量: %s" % PROCESS_NUM)
+    logging.info(">>> [PORT]: %s" % PORT)
+    logging.info(">>> [TTS_MODEL_DIR]: %s" % TTS_MODEL_DIR)
     mp.set_start_method("forkserver")
     manager = mp.Manager()
     Q_text2speech = manager.Queue()
@@ -193,7 +197,7 @@ if __name__ == '__main__':
     processes = []
     for idx in range(PROCESS_NUM):
         p2 = mp.Process(target=process_queue_text2speech,
-                        args=(Q_text2speech, Q_text2speech_rsp))
+                        args=(TTS_MODEL_DIR, Q_text2speech, Q_text2speech_rsp))
         p2.start()
         processes.append(p2)
         _PID_NAME.update({p2.pid: "子进程%s" % idx})
